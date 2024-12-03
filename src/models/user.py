@@ -17,7 +17,5 @@ class User(Base):
     created_on = Column(DateTime(), default=datetime.now)
     updated_on = Column(DateTime(), default=datetime.now, onupdate=datetime.now)
 
-    exchanges = relationship("Exchange", back_populates="user")
-
     def get_lang(self):
         return Language(self.language)

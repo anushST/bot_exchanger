@@ -3,14 +3,14 @@ from aiogram.types import TelegramObject
 
 
 class DataBaseMiddleware(BaseMiddleware):
-    def __init__(self, session_factory):
+    def __init__(self, async_session_factory):
         super().__init__()
-        self.session_factory = session_factory
+        self.async_session_factory = async_session_factory
 
     async def __call__(self, handler, event: TelegramObject, data: dict):
-        with self.session_factory() as session:
+        async with self.async_session_factory() as session:
             try:
                 data["session"] = session
                 return await handler(event, data)
             finally:
-                session.commit()
+                await session.commit()

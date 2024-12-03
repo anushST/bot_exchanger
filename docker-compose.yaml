@@ -1,0 +1,15 @@
+services:
+  db:
+    container_name: "db"
+    image: postgres:13-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5400:5432"
+    volumes:
+      - postgres_bot_exchanger:/var/lib/postgresql/data
+
+volumes:
+    postgres_bot_exchanger:

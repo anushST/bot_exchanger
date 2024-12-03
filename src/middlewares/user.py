@@ -1,5 +1,6 @@
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject
+from sqlalchemy.future import select
 
 from src.models.user import User
 
@@ -8,7 +9,8 @@ class UserMiddleware(BaseMiddleware):
 
     async def __call__(self, handler, event: TelegramObject, data: dict):
         session = data["session"]
-        user = session.query(User).filter_by(tg_id=event.from_user.id).first()
+        result = await session.execute(select(User).filter_by(tg_id=event.from_user.id))
+        user = result.scalars().first()
         if not user:
             user = User(
                 tg_id=event.from_user.id,
@@ -16,7 +18,7 @@ class UserMiddleware(BaseMiddleware):
                 tg_username=event.from_user.username or ""
             )
             session.add(user)
-            session.commit()
+            await session.commit()
 
         data["user"] = user
         data["lang"] = user.get_lang()

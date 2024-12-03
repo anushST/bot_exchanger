@@ -14,18 +14,30 @@ from src.models import init_models
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-db, session = connect(DB_LINK, logger)
-init_models(db)
+async def init_db():
+    db, session = await connect(DB_LINK, logger)
+    await init_models(db)
+    return db, session
 
-scheduler = AsyncIOScheduler(timezone=TIMEZONE)
-bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode='HTML'))
 
-dispatcher = Dispatcher(storage=MemoryStorage())
-init_middlewares(dispatcher, session)
+async def init_bot():
+    bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode='HTML'))
+    dispatcher = Dispatcher(storage=MemoryStorage())
+    return bot, dispatcher
+
+
+async def init_scheduler():
+    scheduler = AsyncIOScheduler(timezone=TIMEZONE)
+    scheduler.start()
+    return scheduler
 
 async def run():
+    db, session = await init_db()
+    bot, dispatcher = await init_bot()
+    scheduler = await init_scheduler()
+
+    init_middlewares(dispatcher, session)
     init_handlers(dispatcher)
-    scheduler.start()
 
     await bot.delete_webhook(drop_pending_updates=True)
     await dispatcher.start_polling(bot)

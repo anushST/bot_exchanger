@@ -1,9 +1,12 @@
 import importlib
+from sqlalchemy.ext.asyncio import AsyncEngine
 from src.database import Base
 
-MODELS = ['currency', 'exchange', 'exchanger', 'exchanger_currency', 'user']
+MODELS = ['user',]
 
-def init_models(db):
+async def init_models(db: AsyncEngine):
     for router in MODELS:
         importlib.import_module("." + router, package=__name__)
-    Base.metadata.create_all(db)
+    
+    async with db.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)

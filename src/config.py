@@ -4,6 +4,9 @@ DB_LINK = config('DB_LINK')
 TOKEN = config('TOKEN')
 ADMINS = [int(admin_id) for admin_id in config('ADMINS').split(',')]
 TIMEZONE = 'Europe/Moscow'
+FFIO_APIKEY = config('FFIO_APIKEY')
+FFIO_SECRET = config('FFIO_SECRET')
+
 
 class KeyboardCallbackData:
     START = "start"

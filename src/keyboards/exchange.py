@@ -13,7 +13,7 @@ def get_cancel_kb(lang: Language):
 
 def get_currencies_kb(lang: Language, currencies: list):
     return ReplyKeyboardMarkup(keyboard=[
-        *[[KeyboardButton(text=c.name)] for c in currencies],
+        *[[KeyboardButton(text='USD')] for c in currencies], # To Fix
         [KeyboardButton(text=lang.keyboard.general.cancel)]
     ], resize_keyboard=True, one_time_keyboard=True)
 

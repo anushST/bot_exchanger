@@ -1,21 +1,15 @@
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String
 
-from src.database import Base
-from datetime import datetime
-from sqlalchemy import Table, Index, String, Integer, Boolean, Column, MetaData, ForeignKey, DateTime
-
+from src.database import BaseModel
 from src.lang import Language
 
 
-class User(Base):
+class User(BaseModel):
     __tablename__ = 'user'
-    id = Column(Integer, primary_key=True)
     tg_id = Column(Integer, unique=True, nullable=False)
-    tg_name = Column(String, nullable=False)
-    tg_username = Column(String, nullable=True)
-    language = Column(String, nullable=False, default="ru")
-    created_on = Column(DateTime(), default=datetime.now)
-    updated_on = Column(DateTime(), default=datetime.now, onupdate=datetime.now)
+    tg_name = Column(String(255), nullable=False)
+    tg_username = Column(String(255), nullable=True)
+    language = Column(String(2), nullable=False, default="ru")
 
     def get_lang(self):
         return Language(self.language)

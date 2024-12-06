@@ -8,15 +8,27 @@ from aiogram.types import Message, CallbackQuery
 
 from src import keyboards
 from src.lang import Language
-from src.models import Currency, User
+from src.models import Currency, User, Transaction
 from src.states import ExchangeForm
 from src.utils import format_message
 from src.config import KeyboardCallbackData
 
+from src.api.executors import show_rate, process_transaction
+
 router = Router()
 
+class StoreObj:
+    def __init__(self, user_id, is_fixed_rate, from_ccy, to_ccy, direction, amount, to_address):
+        self.user_id = user_id
+        self.type = 'fixed' if is_fixed_rate else 'float'
+        self.from_ccy = from_ccy
+        self.to_ccy = to_ccy
+        self.direction = direction
+        self.amount = amount
+        self.to_address = to_address
 
-async def format_exchange_info(lang: Language, state: dict):
+
+async def format_exchange_info(lang: Language, state: dict, add = {}):
     return {
         "exchange_id": state.get("exchange_id"),
         "currency_from": state.get("currency_from_name"),
@@ -32,6 +44,9 @@ async def format_exchange_info(lang: Language, state: dict):
         "absolute_rate": state.get("absolute_rate", lang.exchange.searching),
 
         "rate_type": lang.exchange.rate.get("fixed" if state.get("is_fixed_rate") else "float"),
+
+        'amount_from': add.get('from', None),
+        'amount_to': add.get('to', None)
     }
 
 
@@ -183,60 +198,56 @@ async def select_amount_currency(message: Message, lang: Language, state: FSMCon
 
 
 @router.message(ExchangeForm.amount_value)
-async def select_amount(message: Message, lang: Language, state: FSMContext, session: Session):
+async def select_amount(message: Message, lang: Language, user, state: FSMContext, session: Session):
     amount = re.match("(\\d+(\\.\\d+)?)", message.text.strip().replace(",", "."))
     amount = round(float(amount.group()), 6) if amount else None
 
     if amount and amount > 0:
         await state.set_state(ExchangeForm.confirm)
         await state.update_data(amount_value=amount)
+        data = await state.get_data()
+        exchange = StoreObj(
+            user_id=user.id,
+            is_fixed_rate=data.get('is_fixed_rate'),
+            from_ccy=data.get('currency_from'),
+            to_ccy=data.get('currency_to'),
+            direction=data.get('currency_direction'),
+            amount=data.get('amount_value'),
+            to_address= data.get('wallet_address'),
+        )
+        result = await show_rate(exchange)
 
         await message.answer(
             text=format_message(
                 lang.exchange.confirm,
-                **await format_exchange_info(lang, await state.get_data())
+                **await format_exchange_info(lang, await state.get_data(), {
+                    'from': result['from']['amount'],
+                    'to': result['to']['amount']
+                })
             ), reply_markup=keyboards.exchange.get_confirm_kb(lang)
         )
     else:
         await message.answer("ERROR")
 
 
-# @router.callback_query(ExchangeForm.confirm, F.data == KeyboardCallbackData.EXCHANGE_CONFIRM)
-# async def confirm(event: CallbackQuery, user: User, lang: Language, state: FSMContext, session: Session):
-#     data = await state.get_data()
-#     exchange = Exchange(
-#         user_id=user.id,
-#         is_fixed_rate=data.get("is_fixed_rate"),
-#         currency_from_id=data.get("currency_from_id"),
-#         currency_to_id=data.get("currency_to_id"),
-#         origin_amount=data.get("amount"),
-#         wallet=data.get("wallet"),
-#     )
-#     session.add(exchange)
-#     session.commit()
+@router.callback_query(ExchangeForm.confirm, F.data == KeyboardCallbackData.EXCHANGE_CONFIRM)
+async def confirm(event: CallbackQuery, bot, user: User, lang: Language, state: FSMContext, session: Session):
+    data = await state.get_data()
+    import logging
+    logging.critical(data)
+    exchange = StoreObj(
+        user_id=user.id,
+        is_fixed_rate=data.get('is_fixed_rate'),
+        from_ccy=data.get('currency_from'),
+        to_ccy=data.get('currency_to'),
+        direction=data.get('currency_direction'),
+        amount=data.get('amount_value'),
+        to_address= data.get('wallet_address'),
+    )
+    # session.add(exchange)
+    # await session.commit()
 
-#     await state.set_state(ExchangeForm.exchange_id)
-#     await state.update_data(confirm=True, exchange_id=exchange.id)
-
-#     await event.message.edit_text(
-#         text=format_message(
-#             lang.exchange.exchange_status,
-#             status=lang.exchange.status.searching,
-#             **await format_exchange_info(lang, await state.get_data())
-#         ), reply_markup=None
-#     )
-
-#     import time
-#     time.sleep(5)
-
-#     await state.update_data(final_amount=100)
-#     await state.update_data(rate_amount=100)
-#     await state.update_data(absolute_rate=100)
-
-#     await event.message.edit_text(
-#         text=format_message(
-#             lang.exchange.exchange_status,
-#             status=lang.exchange.status.wait_confirm,
-#             **await format_exchange_info(lang, await state.get_data())
-#         ), reply_markup=keyboards.exchange.get_confirm_kb(lang)
-#     )
+    await event.message.edit_text(
+        text='Запрос принят! Ждите', reply_markup=None
+    )
+    await process_transaction(exchange, bot, event.from_user.id)

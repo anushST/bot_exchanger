@@ -69,15 +69,15 @@ if __name__ == '__main__':
         'fromCcy': 'BSC',
         'toCcy': 'BTC',
         'direction': 'from',
-        'amount': '0.015609',
-        'toAddress': '1BfCNvssYq4JqMqHQVL5w6WwRjWpRoR4Pw'
+        'amount': '0.016909',
+        # 'toAddress': '1BfCNvssYq4JqMqHQVL5w6WwRjWpRoR4Pw'
     }
-    data = {
-        'id': 'RBF9M7',
-        'token': 'kutbgutz5K4qqwUERvg9KIZm2eqSwxrctZ9sq9SX'
-    }
+    # data = {
+    #     'id': 'ZGNNMD',
+    #     'token': 'nSKrpAxkTuugwIuQSqPifDwteMCrnFeNN8ooeBJK'
+    # }
 
-    response = Api.order(data)
+    response = Api.price(data)
 
     from pprint import pprint
     pprint(response)

@@ -14,7 +14,9 @@ class ExchangeForm(StatesGroup):
 
     is_fixed_rate = State()
     wallet_address = State()
-    amount = State()
+    amount_currency = State()
+    amount_value = State()
+    amount_direction = State()
 
     confirm = State()
     exchange_id = State()

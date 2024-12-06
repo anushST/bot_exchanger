@@ -64,8 +64,20 @@ class FixedFloatApi:
 
 if __name__ == '__main__':
     Api = FixedFloatApi('rOSLgo318f85Tfz6ODeKScpicdE5dDuJY2gttlc6', 'Qa3wT7MtTeC0NjZavuAqgxGfxZqD76F2CZPYF6qh')
+    data = {
+        'type': 'float',
+        'fromCcy': 'BSC',
+        'toCcy': 'BTC',
+        'direction': 'from',
+        'amount': '0.015609',
+        'toAddress': '1BfCNvssYq4JqMqHQVL5w6WwRjWpRoR4Pw'
+    }
+    data = {
+        'id': 'RBF9M7',
+        'token': 'kutbgutz5K4qqwUERvg9KIZm2eqSwxrctZ9sq9SX'
+    }
 
-    response = Api.ccies()
+    response = Api.order(data)
 
     from pprint import pprint
     pprint(response)

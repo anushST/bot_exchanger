@@ -1,0 +1,2 @@
+celery[redis]
+django-celery-beat==2.7.0

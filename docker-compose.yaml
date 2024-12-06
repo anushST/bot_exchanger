@@ -1,4 +1,42 @@
 services:
+  redis:
+    image: redis:6-alpine
+    networks:
+      - default
+    ports:
+      - 6379:6379
+  app:
+    build: ./bot
+    restart: always
+    
+    depends_on:
+      - db
+      - redis
+    command: [ "python", "main.py"]
+    ports:
+      - 8000:8000
+    volumes:
+      - ./bot:/usr/src/app
+  celery:
+    build: ./celery
+    restart: always
+    depends_on:
+      - db
+      - redis
+      - app
+    command: ["celery", "--app=celery", "worker", "-l", "INFO"]
+    volumes:
+      - ./celery:/usr/src/app
+  celery_beat:
+    build: ./celery
+    restart: always
+    depends_on:
+      - db
+      - redis
+      - app
+    command: ["celery", "--app=celery", "beat", "-l", "INFO"]
+    volumes:
+      - ./celery:/usr/src/app
   db:
     container_name: "db"
     image: postgres:13-alpine

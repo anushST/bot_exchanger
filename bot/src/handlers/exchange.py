@@ -24,7 +24,8 @@ async def format_exchange_info(lang: Language, state: dict):
         "currency_to": state.get("currency_to_name"),
         "network_to": state.get("currency_to_network_name"),
         "wallet": state.get("wallet_address"),
-        "amount": state.get("amount"),
+        "amount_currency": state.get("amount_currency"),
+        "amount_value": state.get("amount_value"),
 
         "final_amount": state.get("final_amount", lang.exchange.searching),
         "rate_amount": state.get("rate_amount", lang.exchange.searching),
@@ -157,22 +158,38 @@ async def select_network_to(message: Message, lang: Language, state: FSMContext,
 async def select_wallet(message: Message, lang: Language, state: FSMContext, session: Session):
     wallet = message.text.strip()
     if wallet:
-        await state.set_state(ExchangeForm.amount)
+        await state.set_state(ExchangeForm.amount_currency)
         await state.update_data(wallet_address=wallet)
 
-        await message.answer(text='Введите сумму которую хотите получить')
+        await message.answer(text=('Введите валюту операции'))
     else:
         await message.answer("ERROR")
 
 
-@router.message(ExchangeForm.amount)
+@router.message(ExchangeForm.amount_currency)
+async def select_amount_currency(message: Message, lang: Language, state: FSMContext, session: Session):
+    currency = message.text.strip()
+    data = await state.get_data()
+    if currency:
+        await state.set_state(ExchangeForm.amount_value)
+        await state.update_data(amount_currency=currency)
+        if data.get('currency_from'):
+            await state.update_data(currency_direction='from')
+        else:
+            await state.update_data(currency_direction='to')
+        await message.answer(text=('Введите количество'))
+    else:
+        await message.answer("ERROR")
+
+
+@router.message(ExchangeForm.amount_value)
 async def select_amount(message: Message, lang: Language, state: FSMContext, session: Session):
     amount = re.match("(\\d+(\\.\\d+)?)", message.text.strip().replace(",", "."))
     amount = round(float(amount.group()), 6) if amount else None
 
     if amount and amount > 0:
         await state.set_state(ExchangeForm.confirm)
-        await state.update_data(amount=amount)
+        await state.update_data(amount_value=amount)
 
         await message.answer(
             text=format_message(

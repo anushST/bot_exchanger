@@ -1,6 +1,10 @@
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class DataBaseMiddleware(BaseMiddleware):
     def __init__(self, async_session_factory):
@@ -8,6 +12,7 @@ class DataBaseMiddleware(BaseMiddleware):
         self.async_session_factory = async_session_factory
 
     async def __call__(self, handler, event: TelegramObject, data: dict):
+        logger.critical('Log worked')
         async with self.async_session_factory() as session:
             try:
                 data["session"] = session

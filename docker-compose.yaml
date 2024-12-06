@@ -11,5 +11,15 @@ services:
     volumes:
       - postgres_bot_exchanger:/var/lib/postgresql/data
 
+  nginx:
+    image: nginx:latest
+    container_name: nginx_static
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/static:/usr/share/nginx/html:ro
+    restart: always
+
 volumes:
     postgres_bot_exchanger:

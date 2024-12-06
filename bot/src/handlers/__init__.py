@@ -1,6 +1,7 @@
 import importlib
 
-HANDLERS = ["start", "faq",]
+HANDLERS = ["start", "faq", 'exchange', 'inline_handler']
+
 
 def init_handlers(dispatcher):
     for router in HANDLERS:

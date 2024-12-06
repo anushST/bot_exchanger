@@ -1,5 +1,6 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from sqlalchemy.future import select
 
 from src.lang import Language
 from src.models.user import User
@@ -17,16 +18,19 @@ def get_currencies_kb(lang: Language, currencies: list):
         [KeyboardButton(text=lang.keyboard.general.cancel)]
     ], resize_keyboard=True, one_time_keyboard=True)
 
-def get_networks_kb(lang: Language, currencies: list):
+def get_networks_kb(lang: Language, networks: list[str]):
     return ReplyKeyboardMarkup(keyboard=[
-        *[[KeyboardButton(text=c.network)] for c in currencies],
+        *[[KeyboardButton(text=n)] for n in networks],
         [KeyboardButton(text=lang.keyboard.general.cancel)]
     ], resize_keyboard=True, one_time_keyboard=True)
 
 def get_rates_kb(lang: Language):
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=lang.keyboard.exchange.fix_rate, callback_data=KeyboardCallbackData.EXCHANGE_FIX_RATE)],
-        [InlineKeyboardButton(text=lang.keyboard.exchange.float_rate, callback_data=KeyboardCallbackData.EXCHANGE_FLOAT_RATE)],
+        [InlineKeyboardButton(text=lang.keyboard.exchange.fix_rate,
+                              callback_data=KeyboardCallbackData.EXCHANGE_FIX_RATE,
+                              switch_inline_query_current_chat='@exhcanger_new_bot')],
+        [InlineKeyboardButton(text=lang.keyboard.exchange.float_rate, callback_data=KeyboardCallbackData.EXCHANGE_FLOAT_RATE,
+                              switch_inline_query_current_chat='@exhcanger_new_bot')],
         [InlineKeyboardButton(text=lang.keyboard.general.cancel, callback_data=KeyboardCallbackData.CANCEL)]
     ])
 

@@ -3,7 +3,7 @@ import hmac
 import json
 import requests
 
-from src.config import FFIO_APIKEY, FFIO_SECRET
+# from ..config import FFIO_APIKEY, FFIO_SECRET
 
 
 class FixedFloatApi:
@@ -63,7 +63,7 @@ class FixedFloatApi:
 
 
 if __name__ == '__main__':
-    Api = FixedFloatApi(FFIO_APIKEY, FFIO_SECRET)
+    Api = FixedFloatApi('rOSLgo318f85Tfz6ODeKScpicdE5dDuJY2gttlc6', 'Qa3wT7MtTeC0NjZavuAqgxGfxZqD76F2CZPYF6qh')
 
     response = Api.ccies()
 

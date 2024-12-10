@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import json
 import requests
+import xml.etree.ElementTree as ET
 
 # from ..config import FFIO_APIKEY, FFIO_SECRET
 
@@ -40,6 +41,46 @@ class FixedFloatApi:
         else:
             raise Exception(result['msg'], result['code'])
 
+    def get_fixed_rates(self) -> list[dict]:
+        url = 'https://ff.io/rates/fixed.xml'
+        response = requests.get(url)
+        root = ET.fromstring(response.content)
+
+        rates = []
+        for item in root.findall('./item'):
+            rates.append({
+                'from': item.find('from').text,
+                'to': item.find('to').text,
+                'in': item.find('in').text,
+                'out': item.find('out').text,
+                'amount': item.find('amount').text,
+                'tofee': '', # ToDo
+                'minamount': item.find('minamount').text,
+                'maxamount': item.find('maxamount').text
+            })
+
+        return rates
+
+    def get_float_rates(self) -> list[dict]:
+        url = 'https://ff.io/rates/float.xml'
+        response = requests.get(url)
+        root = ET.fromstring(response.content)
+
+        rates = []
+        for item in root.findall('./item'):
+            rates.append({
+                'from': item.find('from').text,
+                'to': item.find('to').text,
+                'in': item.find('in').text,
+                'out': item.find('out').text,
+                'amount': item.find('amount').text,
+                'tofee': '', # ToDo
+                'minamount': item.find('minamount').text,
+                'maxamount': item.find('maxamount').text
+            })
+
+        return rates
+
     def ccies(self) -> dict:
         return self._req('ccies', {})
 
@@ -77,7 +118,7 @@ if __name__ == '__main__':
     #     'token': 'nSKrpAxkTuugwIuQSqPifDwteMCrnFeNN8ooeBJK'
     # }
 
-    response = Api.ccies()
+    response = Api.get_fixed_rates()
 
     from pprint import pprint
     pprint(response)

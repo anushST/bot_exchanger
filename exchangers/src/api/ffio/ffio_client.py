@@ -14,7 +14,7 @@ from . import schemas
 logger = logging.getLogger(__name__)
 
 
-class FixedFloatApi:
+class FFIOClient:
     RESP_OK = 0
     FIXED_RATES_URL = 'https://ff.io/rates/fixed.xml'
     FLOAT_RATES_URL = 'https://ff.io/rates/float.xml'
@@ -82,7 +82,7 @@ class FixedFloatApi:
     async def get_fixed_rates(self) -> list[schemas.RatesSchema]:
         return await self._get_rates(True)
 
-    async def get_float_rates(self) -> list[dict]:
+    async def get_float_rates(self) -> list[schemas.RatesSchema]:
         return await self._get_rates(False)
 
     async def ccies(self) -> list[schemas.Currency]:
@@ -106,15 +106,12 @@ class FixedFloatApi:
     async def emergency(self, data: dict) -> dict:  # ToDo
         return await self._req('emergency', data)
 
-    async def set_email(self, data: dict) -> dict:  # ToDo
-        return await self._req('setEmail', data)
-
     async def qr(self, data: dict) -> dict:  # ToDo
         return await self._req('qr', data)
 
 
 async def main():
-    Api = FixedFloatApi('rOSLgo318f85Tfz6ODeKScpicdE5dDuJY2gttlc6',
+    Api = FFIOClient('rOSLgo318f85Tfz6ODeKScpicdE5dDuJY2gttlc6',
                         'Qa3wT7MtTeC0NjZavuAqgxGfxZqD76F2CZPYF6qh')
     results = await Api.ccies()
     print(results)

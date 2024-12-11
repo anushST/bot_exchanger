@@ -1,7 +1,7 @@
 import redis
 import json
 
-from api.ff import FixedFloatApi
+from exchangers.api.ffio.ffio_client import FixedFloatApi
 # Настройка подключения к Redis
 redis_client = redis.StrictRedis(
     host='localhost',  # Адрес Redis сервера

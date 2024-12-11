@@ -47,7 +47,7 @@ class FixedFloatApi:
         root = ET.fromstring(response.content)
 
         rates = []
-        for item in root.findall('./item'):
+        for item in root.findall('item'):
             rates.append({
                 'from': item.find('from').text,
                 'to': item.find('to').text,
@@ -67,7 +67,7 @@ class FixedFloatApi:
         root = ET.fromstring(response.content)
 
         rates = []
-        for item in root.findall('./item'):
+        for item in root.findall('item'):
             rates.append({
                 'from': item.find('from').text,
                 'to': item.find('to').text,

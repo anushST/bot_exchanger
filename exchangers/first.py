@@ -56,7 +56,7 @@ if __name__ == '__main__':
     Api = FixedFloatApi('rOSLgo318f85Tfz6ODeKScpicdE5dDuJY2gttlc6', 'Qa3wT7MtTeC0NjZavuAqgxGfxZqD76F2CZPYF6qh')
     # api_response = Api.ccies()
     # process_and_store_data(api_response)
-    # process_rates(Api.get_fixed_rates())
+    process_rates(Api.get_fixed_rates())
     print(redis_client.get('ff.io:fixed:ZRX:to:ZEC:info'))
 
 # Вызов функции с примером ответа

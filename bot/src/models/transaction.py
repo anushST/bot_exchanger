@@ -4,7 +4,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from src.database import BaseModel
 
 
-class TransactionTypes:
+class RateTypes:
     FLOAT = 'float'
     FIXED = 'fixed'
     CHOICES = (FLOAT, FIXED)
@@ -26,7 +26,7 @@ class TransactionStatuses:
 
 class Transaction(BaseModel):
     __tablename__ = 'transaction'
-    type = Column(Enum(*TransactionTypes.CHOICES, name='transaction_types'),
+    type = Column(Enum(*RateTypes.CHOICES, name='transaction_types'),
                   nullable=False)
     from_ccy = Column(String(10), nullable=False)
     to_ccy = Column(String(10), nullable=False)

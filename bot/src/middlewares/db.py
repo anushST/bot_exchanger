@@ -12,7 +12,6 @@ class DataBaseMiddleware(BaseMiddleware):
         self.async_session_factory = async_session_factory
 
     async def __call__(self, handler, event: TelegramObject, data: dict):
-        logger.critical('Log worked')
         async with self.async_session_factory() as session:
             try:
                 data["session"] = session

@@ -2,7 +2,7 @@
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from .currency import Currency
-from .transaction import Transaction
+from .transaction import DirectionTypes, RateTypes, Transaction, TransactionStatuses
 from .user import User
 from src.database import BaseModel
 

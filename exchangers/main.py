@@ -1,7 +1,11 @@
 import asyncio
+import decimal
 import logging
 
 from src.tasks import ffio_load_tasks
+
+decimal.getcontext().prec = 8
+decimal.getcontext().rounding = decimal.ROUND_DOWN
 
 logging.basicConfig(
     level=logging.INFO,

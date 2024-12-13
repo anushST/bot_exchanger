@@ -1,11 +1,25 @@
-from decouple import config
+from typing import Optional
 
-DB_LINK = config('DB_LINK')
-TOKEN = config('TOKEN')
-ADMINS = [int(admin_id) for admin_id in config('ADMINS').split(',')]
-TIMEZONE = 'Europe/Moscow'
-FFIO_APIKEY = config('FFIO_APIKEY')
-FFIO_SECRET = config('FFIO_SECRET')
+from pydantic_settings import BaseSettings
+
+
+class Config(BaseSettings):
+    DATABASE_URL: str
+    TOKEN: str
+    TIMEZONE: Optional[str] = 'Europe/Moscow'
+    FFIO_APIKEY: str
+    FFIO_SECRET: str
+
+    REDIS_HOST: Optional[str] = 'localhost'
+    REDIS_PORT: Optional[str] = '6379'
+    REDIS_DATABASE: Optional[int] = 0
+
+    class Config:
+        env_file = '.env'
+        env_file_encoding = 'utf-8'
+
+
+config = Config()
 
 
 class KeyboardCallbackData:

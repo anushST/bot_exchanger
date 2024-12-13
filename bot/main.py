@@ -1,15 +1,20 @@
 import asyncio
+import decimal
 import logging
+
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.default import DefaultBotProperties
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
+from src.config import config
 from src.database import engine as db, session
 from src.handlers import init_handlers
 from src.middlewares import init_middlewares
-from src.config import TOKEN, TIMEZONE
 from src.models import init_models
+
+decimal.getcontext().prec = 8
+decimal.getcontext().rounding = decimal.ROUND_DOWN
 
 logging.basicConfig(
     level=logging.INFO,
@@ -23,13 +28,14 @@ async def init_db():
 
 
 async def init_bot():
-    bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode='HTML'))
+    bot = Bot(token=config.TOKEN,
+              default=DefaultBotProperties(parse_mode='HTML'))
     dispatcher = Dispatcher(storage=MemoryStorage())
     return bot, dispatcher
 
 
 async def init_scheduler():
-    scheduler = AsyncIOScheduler(timezone=TIMEZONE)
+    scheduler = AsyncIOScheduler(timezone=config.TIMEZONE)
     scheduler.start()
     return scheduler
 

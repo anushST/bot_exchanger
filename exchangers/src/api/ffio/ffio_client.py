@@ -113,6 +113,9 @@ class FFIOClient:
 async def main():
     Api = FFIOClient('rOSLgo318f85Tfz6ODeKScpicdE5dDuJY2gttlc6',
                         'Qa3wT7MtTeC0NjZavuAqgxGfxZqD76F2CZPYF6qh')
+    body = schemas.CreateOrder(
+        
+    )
     results = await Api.ccies()
     print(results)
 

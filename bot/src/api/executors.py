@@ -2,11 +2,12 @@ from asyncio import sleep
 from src.database import session
 from sqlalchemy.future import select
 from src.models import Transaction
-from src.config import FFIO_APIKEY, FFIO_SECRET
+from src.config import config
 
 from .ff import FixedFloatApi
 
-Api = FixedFloatApi(FFIO_APIKEY, FFIO_SECRET)
+Api = FixedFloatApi(config.FFIO_APIKEY,
+                    config.FFIO_SECRET)
 
 import logging
 logger = logging.getLogger(__name__)

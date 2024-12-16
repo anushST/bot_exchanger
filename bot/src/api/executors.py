@@ -13,26 +13,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-async def show_rate(transaction):
+async def create_transactions(data, bot, chat_id):
     data = {
-        'type': transaction.type,
-        'fromCcy': transaction.from_ccy,
-        'toCcy': transaction.to_ccy,
-        'direction': transaction.direction,
-        'amount': transaction.amount,
-        'toAddress': transaction.to_address
-    }
-    result = Api.price(data)
-    return result
-
-async def create_transactions(transaction: Transaction, bot, chat_id):
-    data = {
-        'type': transaction.type,
-        'fromCcy': transaction.from_ccy,
-        'toCcy': transaction.to_ccy,
-        'direction': transaction.direction,
-        'amount': transaction.amount,
-        'toAddress': transaction.to_address
+        'type': data.get('type'),
+        'fromCcy': data.get('from_ccy'),
+        'toCcy': data.get('toCcy'),
+        'direction': data.get('direction'),
+        'amount': data.get('amount'),
+        'toAddress': data.get('toAddress')
     }
     result = Api.create(data)
     logger.critical(result)

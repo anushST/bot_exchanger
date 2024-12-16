@@ -17,19 +17,26 @@ class DirectionTypes:
 
 
 class TransactionStatuses:
-    NEW = 'new'
-    SEND_CURRENCY = 'send_currency'
-    CONFIRM_RECEIVING = 'confirm_receiving'
-    CURRENCY_SENT = 'currency_sent'
-    OPTIONS = (NEW, SEND_CURRENCY, CONFIRM_RECEIVING, CURRENCY_SENT)
+    NEW = 'new'  # New order
+    HANDLED = 'handled'  # Transaction handled by one of the exchangers
+    PENDING = 'pending'  # Transaction received, pending confirmation
+    EXCHANGE = 'exchange'  # Transaction confirmed, exchange in progress
+    WITHDRAW = 'withdraw'  # Sending funds
+    DONE = 'done'  # Order completed
+    EXPIRED = 'expired'  # Order expired
+    EMERGENCY = 'emergency'  # Emergency, customer choice required
+    OPTIONS = (NEW, HANDLED, PENDING, EXCHANGE, WITHDRAW, DONE, EXPIRED,
+               EMERGENCY)
 
 
 class Transaction(BaseModel):
     __tablename__ = 'transaction'
-    type = Column(Enum(*RateTypes.CHOICES, name='transaction_types'),
-                  nullable=False)
-    from_ccy = Column(String(10), nullable=False)
-    to_ccy = Column(String(10), nullable=False)
+    rate_type = Column(Enum(*RateTypes.CHOICES, name='transaction_types'),
+                       nullable=False)
+    from_currency = Column(String(10), nullable=False)
+    from_currency_network = Column(String(10), nullable=False)
+    to_currency = Column(String(10), nullable=False)
+    to_currency_network = Column(String(10), nullable=False)
     direction = Column(Enum(*DirectionTypes.CHOICES, name='direction_types'),
                        nullable=False)
     amount = Column(DECIMAL(precision=50, scale=30), nullable=False)

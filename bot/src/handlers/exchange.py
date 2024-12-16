@@ -8,11 +8,12 @@ from aiogram.types import Message, CallbackQuery
 from src.keyboards import exchange as exchange_kbs
 from src.api.ffio import schemas, FFIORedisClient
 from src.lang import Language
-from src.models import DirectionTypes, RateTypes, User
+from src.models import DirectionTypes, RateTypes, Transaction, User
 from src.states import ExchangeForm
 from src.utils import format_message
 from src.config import KeyboardCallbackData
 
+from src.api.executors import process_transaction
 
 router = Router()
 ffio_client = FFIORedisClient()
@@ -69,7 +70,6 @@ async def get_rate(state_data: dict) -> schemas.RatesSchema:
         raise Exception('Get_rate can not return empty rate list. '
                         'Please enter valid data.')
     return rate
-
 
 
 @router.callback_query(F.data == KeyboardCallbackData.EXCHANGE_CREATE)
@@ -137,7 +137,7 @@ async def select_network_from(message: Message, lang: Language,
         currency_info = await ffio_client.get_coin_full_info(
             currency, network
         )
-        if not currency_info.send:
+        if not currency_info.recv:
             await message.answer(lang.exchange.tech_workings,
                                  reply_markup=exchange_kbs.get_search_kb(lang))
             await state.set_state(ExchangeForm.currency_from)
@@ -190,7 +190,7 @@ async def select_network_to(message: Message, lang: Language,
         currency_info = await ffio_client.get_coin_full_info(
             currency, network
         )
-        if not currency_info.recv:
+        if not currency_info.send:
             await message.answer(lang.exchange.tech_workings,
                                  reply_markup=exchange_kbs.get_search_kb(lang))
             await state.set_state(ExchangeForm.currency_to)
@@ -282,11 +282,11 @@ async def select_amount(message: Message, lang: Language, state: FSMContext):
     exchange_direction = state_data.get('exchange_direction')
     rate = await get_rate(state_data)
 
-    if not rate.check_min_max_limits(exchange_direction, amount):
-        await message.answer(format_message(
-            lang.exchange.amount_not_in_range,
-        ))
-        return
+    # if not rate.check_min_max_limits(exchange_direction, amount):
+    #     await message.answer(format_message(
+    #         lang.exchange.amount_not_in_range,
+    #     ))
+    #     return
 
     if exchange_direction == DirectionTypes.FROM:
         amount_from = amount
@@ -311,24 +311,42 @@ async def select_amount(message: Message, lang: Language, state: FSMContext):
     )
 
 
-# @router.callback_query(ExchangeForm.confirm, F.data == KeyboardCallbackData.EXCHANGE_CONFIRM)
-# async def confirm(event: CallbackQuery, bot, user: User, lang: Language, state: FSMContext, session: Session):
-#     data = await state.get_data()
-#     import logging
-#     logging.critical(data)
-#     exchange = StoreObj(
-#         user_id=user.id,
-#         is_fixed_rate=data.get('is_fixed_rate'),
-#         from_ccy=data.get('currency_from'),
-#         to_ccy=data.get('currency_to'),
-#         direction=data.get('currency_direction'),
-#         amount=data.get('amount_value'),
-#         to_address= data.get('wallet_address'),
-#     )
-#     # session.add(exchange)
-#     # await session.commit()
+@router.callback_query(ExchangeForm.confirm,
+                       F.data == KeyboardCallbackData.EXCHANGE_CONFIRM)
+async def confirm(event: CallbackQuery, bot, user: User, lang: Language,
+                  state: FSMContext, session: Session):
+    data = await state.get_data()
+    exchange = Transaction(
+        user_id=user.id,
+        rate_type=data.get('rate_type'),
+        from_currency=data.get('currency_from'),
+        from_currency_network=data.get('currency_from_network'),
+        to_currency=data.get('currency_to'),
+        to_currency_network=data.get('currency_to_network'),
+        direction=data.get('exchange_direction'),
+        amount=data.get('amount_value'),
+        to_address=data.get('wallet_address'),
+    )
+    session.add(exchange)
+    await session.commit()
 
-#     await event.message.edit_text(
-#         text='Запрос принят! Ждите', reply_markup=None
-#     )
-#     await process_transaction(exchange, bot, event.from_user.id)
+    await event.message.edit_text(
+        text='Запрос принят! Ждите', reply_markup=None
+    )
+    # To remove
+    f_info = await ffio_client.get_coin_full_info(
+        data.get('currency_from'), data.get('currency_from_network')
+    )
+    t_info = await ffio_client.get_coin_full_info(
+        data.get('currency_to'), data.get('currency_to_network')
+    )
+
+    exchange = {
+        'type': data.get('rate_type'),
+        'from_ccy': f_info.code,
+        'toCcy': t_info.code,
+        'direction': data.get('exchange_direction'),
+        'amount': float(data.get('amount_value')),
+        'toAddress': data.get('wallet_address')
+    }
+    await process_transaction(exchange, bot, event.from_user.id)

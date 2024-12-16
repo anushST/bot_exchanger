@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 
 from redis.asyncio import StrictRedis
 
@@ -28,8 +29,34 @@ class LoadFFIODataToRedis:
             secret=config.FFIO_SECRET
         )
 
+    async def _remove_currencies_ununiqueness(
+            self, coins) -> list[schemas.Currency]:
+        grouped_coins = defaultdict(list)
+
+        for coin in coins:
+            key = (coin.coin, coin.network)
+            grouped_coins[key].append(coin)
+
+        filtered_coins = []
+
+        for key, group in grouped_coins.items():
+            if len(group) == 1:
+                filtered_coins.append(group[0])
+            else:
+                codes = ', '.join(coin.code for coin in group)
+                logger.info(f'Removed pair {key[0]}/{key[1]}, values: {codes}')
+
+        return filtered_coins
+
     async def load_currencies_and_networks(self) -> None:
         coins = await self.api_client.ccies()
+        coins = await self._remove_currencies_ununiqueness(coins)
+        # Delete previouse sets, ToDo
+        await self.redis_client.delete(self.COINS_KEY)
+        for coin in coins:
+            coin_key = self.COIN_NETWORKS.format(coin_name=coin.coin)
+            await self.redis_client.delete(coin_key)
+
         for coin in coins:
             await self.redis_client.sadd(self.COINS_KEY, coin.coin)
             await self.redis_client.sadd(

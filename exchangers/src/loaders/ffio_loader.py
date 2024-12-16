@@ -51,18 +51,18 @@ class LoadFFIODataToRedis:
     async def load_currencies_and_networks(self) -> None:
         coins = await self.api_client.ccies()
         coins = await self._remove_currencies_ununiqueness(coins)
-        # Delete previouse sets, ToDo
-        await self.redis_client.delete(self.COINS_KEY)
-        for coin in coins:
-            coin_key = self.COIN_NETWORKS.format(coin_name=coin.coin)
-            await self.redis_client.delete(coin_key)
+
+        coins_set = set()
+        coin_networks = defaultdict(set)
 
         for coin in coins:
-            await self.redis_client.sadd(self.COINS_KEY, coin.coin)
-            await self.redis_client.sadd(
-                self.COIN_NETWORKS.format(coin_name=coin.coin),
-                coin.network
-            )
+            # await self.redis_client.sadd(self.COINS_KEY, coin.coin)
+            # await self.redis_client.sadd(
+            #     self.COIN_NETWORKS.format(coin_name=coin.coin),
+            #     coin.network
+            # )
+            coins_set.add(coin.coin)
+            coin_networks[coin.coin].add(coin.network)
             await self.redis_client.set(
                 self.FULL_COIN_INFO_KEY.format(
                     exchanger=self.EXCHANGER,
@@ -71,6 +71,19 @@ class LoadFFIODataToRedis:
                 ),
                 coin.model_dump_json()
             )
+
+        await self.redis_client.delete(self.COINS_KEY)
+        await self.redis_client.sadd(self.COINS_KEY, *coins_set)
+
+        for coin, networks in coin_networks.items():
+            await self.redis_client.delete(
+                self.COIN_NETWORKS.format(coin_name=coin)
+            )
+            await self.redis_client.sadd(
+                self.COIN_NETWORKS.format(coin_name=coin),
+                *networks
+            )
+
         logger.info('Currencies and networks loaded successfully')
 
     async def _load_rates(self, rates: list[schemas.RatesSchema], type: str):

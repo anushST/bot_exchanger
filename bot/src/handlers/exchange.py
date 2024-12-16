@@ -212,15 +212,40 @@ async def select_network_to(message: Message, lang: Language,
 @router.message(ExchangeForm.wallet_address)
 async def select_wallet(message: Message, lang: Language, state: FSMContext):
     wallet = message.text.strip()
+    data = await state.get_data()
+    rate_type = data.get('rate_type')
     if wallet:
-        await state.set_state(ExchangeForm.amount_currency)
         await state.update_data(wallet_address=wallet)
 
-        await message.answer(
-            text=format_message(
-                lang.exchange.select_amount_currency,
-                **await format_exchange_info(lang, await state.get_data())),
-            reply_markup=exchange_kbs.get_search_kb(lang))
+        if rate_type == RateTypes.FIXED:
+            await state.set_state(ExchangeForm.amount_currency)
+            await message.answer(
+                text=format_message(
+                    lang.exchange.select_amount_currency,
+                    **await format_exchange_info(
+                        lang, await state.get_data())),
+                reply_markup=exchange_kbs.get_search_kb(lang))
+        elif rate_type == RateTypes.FLOAT:
+            await state.set_state(ExchangeForm.amount_value)
+            currency_from = data.get('currency_from')
+            currency_to = data.get('currency_to')
+            currency = currency_from
+            rate = await get_rate(data)
+            text = lang.exchange.select_amount_from
+            min_amount = rate.min_amount
+            max_amount = rate.max_amount
+            await message.answer(text=format_message(
+                text,
+                currency_from=currency_from,
+                currency_from_in=rate.in_amount,
+                currency_to=currency_to,
+                currency_to_out=rate.out_amount,
+                currency=currency,
+                minamount=min_amount,
+                maxamount=max_amount
+            ))
+        else:
+            raise Exception('Rate type did not set.')
     else:
         await message.answer("ERROR")
 
@@ -270,7 +295,8 @@ async def select_amount_currency(message: Message, lang: Language,
 
 
 @router.message(ExchangeForm.amount_value)
-async def select_amount(message: Message, lang: Language, state: FSMContext):
+async def select_amount(message: Message, lang: Language,
+                        state: FSMContext):
     amount = message.text
     try:
         amount = Decimal(amount)

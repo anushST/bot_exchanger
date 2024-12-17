@@ -9,7 +9,7 @@ import aiohttp
 import xmltodict
 from pydantic import BaseModel
 
-from . import schemas
+import schemas
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class FFIOClient:
 
     async def _req(self, method: str, data: BaseModel = None) -> list[dict]:
         url = f'https://ff.io/api/v2/{method}'
-        req = data.model_dump_json() if data else json.dumps({})
+        req = data.model_dump_json(by_alias=True) if data else json.dumps({})
 
         headers = {
             'Accept': 'application/json',
@@ -48,7 +48,7 @@ class FFIOClient:
                 if result['code'] == self.RESP_OK:
                     return result['data']
                 else:
-                    raise Exception(result['msg'], result['code'])
+                    raise Exception(result['msg'], result['code'], result)
 
     async def _get_rates(self, is_fixed=True) -> list[schemas.RatesSchema]:
         async with aiohttp.ClientSession() as session:
@@ -97,11 +97,13 @@ class FFIOClient:
 
     async def create(self, data: schemas.CreateOrder) -> schemas.OrderData:
         order_data = await self._req('create', data)
+        logger.info(f'Order data: {order_data}')
         return schemas.OrderData(**order_data)
 
     async def order(
             self, data: schemas.CreateOrderDetails) -> schemas.OrderData:
-        return await self._req('order', data)  # ToDo
+        order_data = await self._req('order', data)
+        return schemas.OrderData(**order_data)
 
     async def emergency(self, data: dict) -> dict:  # ToDo
         return await self._req('emergency', data)
@@ -114,9 +116,15 @@ async def main():
     Api = FFIOClient('rOSLgo318f85Tfz6ODeKScpicdE5dDuJY2gttlc6',
                         'Qa3wT7MtTeC0NjZavuAqgxGfxZqD76F2CZPYF6qh')
     body = schemas.CreateOrder(
-        
+        type='fixed',
+        fromCcy='BSC',
+        toCcy='BTC',
+        direction='from',
+        amount=Decimal('0.1'),
+        toAddress='1BfCNvssYq4JqMqHQVL5w6WwRjWpRoR4Pw',
     )
-    results = await Api.ccies()
+    body = schemas.CreateOrderDetails(token='GJbuNg86bnG2fbkaPnZxsasQ1xkUt90NYLNS9AHv', id='YYCSH7')
+    results = await Api.order(body)
     print(results)
 
 if __name__ == '__main__':

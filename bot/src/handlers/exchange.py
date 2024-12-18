@@ -1,3 +1,4 @@
+import logging
 from decimal import Decimal, InvalidOperation
 
 from aiogram import Router, F, Bot
@@ -17,6 +18,8 @@ from src.api.executors import process_transaction
 
 router = Router()
 ffio_client = FFIORedisClient()
+
+logger = logging.getLogger(__name__)
 
 
 async def format_exchange_info(lang: Language, state: dict):
@@ -263,6 +266,7 @@ async def select_amount_currency(message: Message, lang: Language,
         return
 
     rate = await get_rate(data)
+    logger.info(rate)
 
     if currency == currency_from:
         exchange_direction = DirectionTypes.FROM

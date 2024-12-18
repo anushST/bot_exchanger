@@ -9,7 +9,8 @@ import aiohttp
 import xmltodict
 from pydantic import BaseModel
 
-import schemas
+from . import schemas
+from src.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +113,9 @@ class FFIOClient:
         return await self._req('qr', data)
 
 
+ffio_client = FFIOClient(config.FFIO_APIKEY, config.FFIO_SECRET)
+
+
 async def main():
     Api = FFIOClient('rOSLgo318f85Tfz6ODeKScpicdE5dDuJY2gttlc6',
                         'Qa3wT7MtTeC0NjZavuAqgxGfxZqD76F2CZPYF6qh')
@@ -124,7 +128,14 @@ async def main():
         toAddress='1BfCNvssYq4JqMqHQVL5w6WwRjWpRoR4Pw',
     )
     body = schemas.CreateOrderDetails(token='GJbuNg86bnG2fbkaPnZxsasQ1xkUt90NYLNS9AHv', id='YYCSH7')
-    results = await Api.order(body)
+    body = {
+        'type': 'fixed',
+        'fromCcy': 'BSC',
+        'toCcy': 'BTC',
+        'direction': 'from',
+        'amount': '1'
+    }
+    results = await Api.price(body)
     print(results)
 
 if __name__ == '__main__':

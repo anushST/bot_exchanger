@@ -1,4 +1,7 @@
-from sqlalchemy import Column, DECIMAL, Enum, ForeignKey, String
+from uuid import uuid4
+
+from sqlalchemy import (Column, DECIMAL, Enum, ForeignKey, Integer,
+                        String, Text)
 from sqlalchemy.dialects.postgresql import UUID
 
 from src.database import BaseModel
@@ -25,12 +28,17 @@ class TransactionStatuses:
     DONE = 'done'  # Order completed
     EXPIRED = 'expired'  # Order expired
     EMERGENCY = 'emergency'  # Emergency, customer choice required
+    ERROR = 'error'  # when some error oqqurs
     OPTIONS = (NEW, HANDLED, PENDING, EXCHANGE, WITHDRAW, DONE, EXPIRED,
-               EMERGENCY)
+               EMERGENCY, ERROR,)
 
 
 class Transaction(BaseModel):
     __tablename__ = 'transaction'
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4,
+                unique=True, nullable=False)
+    status_code = Column(Integer(), nullable=True)
+    msg = Column(Text(), nullable=True)
     rate_type = Column(Enum(*RateTypes.CHOICES, name='transaction_types'),
                        nullable=False)
     from_currency = Column(String(10), nullable=False)

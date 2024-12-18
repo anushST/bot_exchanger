@@ -1,8 +1,8 @@
 from uuid import uuid4
 
-from sqlalchemy import (Column, DECIMAL, Enum, ForeignKey, Integer,
-                        String, Text)
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import (Boolean, Column, DECIMAL, Enum, ForeignKey,
+                        Integer, String, Text)
+from sqlalchemy.dialects.postgresql import JSON, UUID
 
 from src.database import BaseModel
 
@@ -47,7 +47,7 @@ class Transaction(BaseModel):
     to_currency_network = Column(String(10), nullable=False)
     direction = Column(Enum(*DirectionTypes.CHOICES, name='direction_types'),
                        nullable=False)
-    amount = Column(DECIMAL(precision=50, scale=30), nullable=False)
+    amount = Column(DECIMAL(precision=50, scale=10), nullable=False)
     to_address = Column(String(255), nullable=False)
     user_id = Column(UUID(as_uuid=True), ForeignKey('user.id'),
                      nullable=False)
@@ -56,3 +56,8 @@ class Transaction(BaseModel):
                     nullable=False, default=TransactionStatuses.NEW)
     transaction_id = Column(String(255), nullable=True)
     transaction_token = Column(String(255), nullable=True)
+    is_status_handled = Column(Boolean, nullable=False, default=True)
+    extra_data = Column(JSON, nullable=True)
+    final_from_amount = Column(DECIMAL(precision=50, scale=10), nullable=True)
+    final_to_amount = Column(DECIMAL(precision=50, scale=10), nullable=True)
+    address_to_send_amount = Column(String(255), nullable=True)

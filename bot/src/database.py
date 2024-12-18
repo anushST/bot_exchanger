@@ -1,4 +1,5 @@
 import uuid
+from contextlib import asynccontextmanager
 from datetime import datetime
 
 from sqlalchemy import Column, DateTime
@@ -13,6 +14,11 @@ engine = create_async_engine(config.DATABASE_URL)
 engine.connect()
 session = sessionmaker(autocommit=False, autoflush=False, bind=engine,
                        class_=AsyncSession)
+
+@asynccontextmanager
+async def get_session():
+    async with session() as ses:
+        yield ses
 
 
 class BaseModel(Base):

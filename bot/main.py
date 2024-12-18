@@ -12,6 +12,7 @@ from src.database import engine as db, session
 from src.handlers import init_handlers
 from src.middlewares import init_middlewares
 from src.models import init_models
+from src.transaction import TransactionNotifier, TransactionNotifyProcessor
 
 decimal.getcontext().prec = 8
 decimal.getcontext().rounding = decimal.ROUND_DOWN
@@ -46,6 +47,11 @@ async def run():
 
     init_middlewares(dispatcher, session)
     init_handlers(dispatcher)
+
+    trn_notifyer = TransactionNotifier(bot)
+    trn_notify_processor = TransactionNotifyProcessor(trn_notifyer)
+
+    asyncio.create_task(trn_notify_processor.process_transactions())
 
     await bot.delete_webhook(drop_pending_updates=True)
     await dispatcher.start_polling(bot)

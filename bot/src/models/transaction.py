@@ -1,7 +1,6 @@
-from uuid import uuid4
-
 from sqlalchemy import (Boolean, Column, DECIMAL, Enum, ForeignKey,
                         Integer, String, Text)
+from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSON, UUID
 
 from src.database import BaseModel
@@ -22,6 +21,7 @@ class DirectionTypes:
 class TransactionStatuses:
     NEW = 'new'  # New order
     HANDLED = 'handled'  # Transaction handled by one of the exchangers
+    CREATED = 'created'  # Transaction has been created
     PENDING = 'pending'  # Transaction received, pending confirmation
     EXCHANGE = 'exchange'  # Transaction confirmed, exchange in progress
     WITHDRAW = 'withdraw'  # Sending funds
@@ -29,14 +29,12 @@ class TransactionStatuses:
     EXPIRED = 'expired'  # Order expired
     EMERGENCY = 'emergency'  # Emergency, customer choice required
     ERROR = 'error'  # when some error oqqurs
-    OPTIONS = (NEW, HANDLED, PENDING, EXCHANGE, WITHDRAW, DONE, EXPIRED,
-               EMERGENCY, ERROR,)
+    OPTIONS = (NEW, HANDLED, CREATED, PENDING, EXCHANGE, WITHDRAW, DONE,
+               EXPIRED, EMERGENCY, ERROR,)
 
 
 class Transaction(BaseModel):
     __tablename__ = 'transaction'
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4,
-                unique=True, nullable=False)
     status_code = Column(Integer(), nullable=True)
     msg = Column(Text(), nullable=True)
     rate_type = Column(Enum(*RateTypes.CHOICES, name='transaction_types'),
@@ -56,8 +54,10 @@ class Transaction(BaseModel):
                     nullable=False, default=TransactionStatuses.NEW)
     transaction_id = Column(String(255), nullable=True)
     transaction_token = Column(String(255), nullable=True)
-    is_status_handled = Column(Boolean, nullable=False, default=True)
+    is_status_showed = Column(Boolean, nullable=False, default=False)
     extra_data = Column(JSON, nullable=True)
     final_from_amount = Column(DECIMAL(precision=50, scale=10), nullable=True)
     final_to_amount = Column(DECIMAL(precision=50, scale=10), nullable=True)
     address_to_send_amount = Column(String(255), nullable=True)
+
+    user = relationship('User', lazy='joined')

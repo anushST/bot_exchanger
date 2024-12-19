@@ -379,4 +379,4 @@ async def confirm(event: CallbackQuery, bot, user: User, lang: Language,
         'amount': float(data.get('amount_value')),
         'toAddress': data.get('wallet_address')
     }
-    await process_transaction(exchange, bot, event.from_user.id)
+    # await process_transaction(exchange, bot, event.from_user.id)

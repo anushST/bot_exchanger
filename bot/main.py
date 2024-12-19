@@ -8,7 +8,7 @@ from aiogram.client.default import DefaultBotProperties
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from src.config import config
-from src.database import engine as db, session
+from src.database import engine as db, session, set_isolation_level
 from src.handlers import init_handlers
 from src.middlewares import init_middlewares
 from src.models import init_models
@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 async def init_db():
     await init_models(db)
+    await set_isolation_level('SERIALIZABLE')
     return db, session
 
 

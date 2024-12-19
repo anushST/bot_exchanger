@@ -23,7 +23,7 @@ class TransactionNotifyProcessor:
                 async with get_session() as session:
                     result = await session.execute(
                         select(Transaction).where(
-                            Transaction.is_status_handled.is_(False)
+                            Transaction.is_status_showed.is_(False)
                         )
                     )
                     transactions = result.scalars().all()
@@ -32,7 +32,8 @@ class TransactionNotifyProcessor:
                         await self._process_transaction(transaction, session)
 
             except SQLAlchemyError as e:
-                logger.error(f'Ошибка при работе с базой данных: {e}')
+                logger.error(f'Ошибка при работе с базой данных: {e}',
+                             exc_info=True)
             except Exception as e:
                 logger.error(f'Неизвестная ошибка: {e}', exc_info=True)
             await asyncio.sleep(3)
@@ -40,12 +41,11 @@ class TransactionNotifyProcessor:
     async def _process_transaction(self, transaction: Transaction,
                                    session: AsyncSession) -> None:
         try:
-            transaction.is_status_handled = True
+            transaction.is_status_showed = True
             await session.commit()
+            await session.refresh(transaction)
 
             await self.notifier.notify(transaction)
-            logger.info('Уведомление успешно отправлено для транзакции '
-                        f'{transaction.id}')
 
         except SQLAlchemyError as e:
             logger.error(

@@ -1,7 +1,6 @@
 # flake8: noqa: F401
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from .currency import Currency
 from .transaction import DirectionTypes, RateTypes, Transaction, TransactionStatuses
 from .user import User
 from src.database import BaseModel

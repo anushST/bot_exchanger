@@ -6,8 +6,6 @@ from src.lang import Language
 from src.models import User
 from src.config import KeyboardCallbackData
 
-from src.models import Currency
-
 router = Router()
 
 

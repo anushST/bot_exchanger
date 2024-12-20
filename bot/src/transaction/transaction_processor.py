@@ -56,3 +56,4 @@ class TransactionNotifyProcessor:
             logger.error(
                 f'Ошибка при обработке транзакции {transaction.id}: {e}',
                 exc_info=True)
+            await session.rollback()

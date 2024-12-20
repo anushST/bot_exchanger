@@ -344,7 +344,7 @@ async def select_amount(message: Message, lang: Language,
 
 @router.callback_query(ExchangeForm.confirm,
                        F.data == KeyboardCallbackData.EXCHANGE_CONFIRM)
-async def confirm(event: CallbackQuery, bot, user: User, lang: Language,
+async def confirm(event: CallbackQuery, bot: Bot, user: User, lang: Language,
                   state: FSMContext, session: Session):
     data = await state.get_data()
     exchange = Transaction(
@@ -361,7 +361,9 @@ async def confirm(event: CallbackQuery, bot, user: User, lang: Language,
     )
     session.add(exchange)
     await session.commit()
+    await event.message.edit_text(event.message.text, reply_markup=None)
 
-    await event.message.edit_text(
-        text='Запрос принят! Ждите', reply_markup=None
-    )
+    await bot.send_message(
+        chat_id=event.from_user.id,
+        text=lang.exchange.transaction_started,
+        reply_markup=None)

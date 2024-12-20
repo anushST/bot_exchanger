@@ -1,3 +1,3 @@
 # Codes started with 4.. mean errors.
 INVALID_ADDRESS_CODE = 400
-OUT_OF_LIMITIS_CODE = 401
+OUT_OF_LIMITS_CODE = 401

@@ -40,9 +40,9 @@ class TransactionNotifier:
             return lang.transaction.error.incorrect_address
         elif status_code == tc.OUT_OF_LIMITS_CODE:
             return lang.transaction.error.out_of_limits
-        else:
+        elif status_code:
             error_msg = (f'Unknown error code: {status_code} '
-                         'for transaction {transaction.id}')
+                         f'for transaction {transaction.id}')
             raise ValueError(error_msg)
 
     def _generate_message(self, transaction: Transaction) -> str:

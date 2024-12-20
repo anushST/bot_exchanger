@@ -109,12 +109,13 @@ class FFioTransaction:
             )
 
             response = None
+            status_code = None
             try:
                 response = await ffio_client.create(data)
             except api_ex.InvalidAddressError:
                 status_code = tc.INVALID_ADDRESS_CODE
             except api_ex.OutOFLimitisError:
-                status_code = tc.OUT_OF_LIMITIS_CODE
+                status_code = tc.OUT_OF_LIMITS_CODE
             except ex.ClientError as e:
                 logger.error('Error from FFIO client during order creation '
                              f'for transaction {transaction.id}: {e}',

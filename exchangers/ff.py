@@ -66,19 +66,25 @@ if __name__ == '__main__':
     Api = FixedFloatApi('rOSLgo318f85Tfz6ODeKScpicdE5dDuJY2gttlc6',
                         'Qa3wT7MtTeC0NjZavuAqgxGfxZqD76F2CZPYF6qh')
     data = {
-        'type': 'floddat',
+        'type': 'fixed',
         'fromCcy': 'USDTBSC',
         'toCcy': 'BTCBSC',
-        'direction': 'tof',
-        'amount': '1',
+        'direction': 'from',
+        'amount': '6',
         'toAddress': '0x2ace0222ebc017c81549af01777b450232601fe3'
     }
+    data = {
+        'id': 'NGTY7B',
+        'token': 'H6djeXSYMKuK6ecIkbr74gXP1Nd9B6iWyv14gbod'
+    }
     # data = {
-    #     'id': 'ZGNNMD',
-    #     'token': 'nSKrpAxkTuugwIuQSqPifDwteMCrnFeNN8ooeBJK'
+    #     'id': 'NGTY7B',
+    #     'token': 'H6djeXSYMKuK6ecIkbr74gXP1Nd9B6iWyv14gbod',
+    #     'choice': 'REFUND',
+    #     'address': '0x2ace0222ebc017c81549af01777b450232601fe3',
     # }
 
-    response = Api.create(data)
+    response = Api.order(data)
 
     from pprint import pprint
     pprint(response)

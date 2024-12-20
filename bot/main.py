@@ -5,7 +5,6 @@ import logging
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.default import DefaultBotProperties
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from src.config import config
 from src.database import engine as db, session, set_isolation_level
@@ -24,38 +23,48 @@ logger = logging.getLogger(__name__)
 
 
 async def init_db():
-    await init_models(db)
-    await set_isolation_level('SERIALIZABLE')
-    return db, session
+    try:
+        await init_models(db)
+        await set_isolation_level('SERIALIZABLE')
+        return db, session
+    except Exception as e:
+        logger.critical('Error while initializing database: %s', e,
+                        exc_info=True)
+        raise
 
 
 async def init_bot():
-    bot = Bot(token=config.TOKEN,
-              default=DefaultBotProperties(parse_mode='HTML'))
-    dispatcher = Dispatcher(storage=MemoryStorage())
-    return bot, dispatcher
-
-
-async def init_scheduler():
-    scheduler = AsyncIOScheduler(timezone=config.TIMEZONE)
-    scheduler.start()
-    return scheduler
+    try:
+        bot = Bot(token=config.TOKEN,
+                  default=DefaultBotProperties(parse_mode='HTML'))
+        dispatcher = Dispatcher(storage=MemoryStorage())
+        return bot, dispatcher
+    except Exception as e:
+        logger.critical('Error while initializing bot: %s', e, exc_info=True)
+        raise
 
 
 async def run():
-    db, session = await init_db()
-    bot, dispatcher = await init_bot()
+    db, session = None, None
+    bot, dispatcher = None, None
+    while True:
+        try:
+            db, session = await init_db()
+            bot, dispatcher = await init_bot()
 
-    init_middlewares(dispatcher, session)
-    init_handlers(dispatcher)
+            init_middlewares(dispatcher, session)
+            init_handlers(dispatcher)
 
-    trn_notifyer = TransactionNotifier(bot)
-    trn_notify_processor = TransactionNotifyProcessor(trn_notifyer)
+            trn_notifyer = TransactionNotifier(bot)
+            trn_notify_processor = TransactionNotifyProcessor(trn_notifyer)
 
-    asyncio.create_task(trn_notify_processor.process_transactions())
+            asyncio.create_task(trn_notify_processor.process_transactions())
 
-    await bot.delete_webhook(drop_pending_updates=True)
-    await dispatcher.start_polling(bot)
+            await bot.delete_webhook(drop_pending_updates=True)
+            await dispatcher.start_polling(bot)
+        except Exception as e:
+            logger.error(f'Unexpected error in main loop: {e}', exc_info=True)
+            await asyncio.sleep(5)
 
 if __name__ == "__main__":
     asyncio.run(run())

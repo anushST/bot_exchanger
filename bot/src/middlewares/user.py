@@ -9,7 +9,8 @@ class UserMiddleware(BaseMiddleware):
 
     async def __call__(self, handler, event: TelegramObject, data: dict):
         session = data["session"]
-        result = await session.execute(select(User).filter_by(tg_id=event.from_user.id))
+        result = await session.execute(select(User).filter_by(
+            tg_id=event.from_user.id))
         user = result.scalars().first()
         if not user:
             user = User(
@@ -19,6 +20,7 @@ class UserMiddleware(BaseMiddleware):
             )
             session.add(user)
             await session.commit()
+            await session.refresh(user)
 
         data["user"] = user
         data["lang"] = user.get_lang()

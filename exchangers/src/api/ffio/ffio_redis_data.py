@@ -65,7 +65,7 @@ class FFIORedisClient:
         return await self._get_rate('fixed', from_coin, from_coin_network,
                                     to_coin, to_coin_network)
 
-    async def get_flaot_rate(
+    async def get_float_rate(
             self, from_coin: str, from_coin_network: str,
             to_coin: str, to_coin_network: str) -> schemas.RatesSchema | None:
         return await self._get_rate('float', from_coin, from_coin_network,

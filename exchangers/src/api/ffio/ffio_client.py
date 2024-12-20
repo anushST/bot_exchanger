@@ -118,6 +118,7 @@ class FFIOClient:
 
     async def create(self, data: schemas.CreateOrder) -> schemas.OrderData:
         response = await self._req('create', data)
+        logger.info(response)
         response_code = response.get('code')
         response_message = response.get('msg')
         if response_code == 301:

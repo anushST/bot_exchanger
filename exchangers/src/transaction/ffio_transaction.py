@@ -108,26 +108,18 @@ class FFioTransaction:
                 toAddress=transaction.to_address
             )
 
+            response = None
             try:
                 response = await ffio_client.create(data)
             except api_ex.InvalidAddressError:
                 status_code = tc.INVALID_ADDRESS_CODE
-            except api_ex.IncorrectDirectionError:
-                status_code = tc.INCORRECT_DIRECTION_CODE
             except api_ex.OutOFLimitisError:
                 status_code = tc.OUT_OF_LIMITIS_CODE
-            except api_ex.PartnerInternalError:
-                status_code = tc.PARTNET_INTERNAL_ERROR_CODE
             except ex.ClientError as e:
                 logger.error('Error from FFIO client during order creation '
                              f'for transaction {transaction.id}: {e}',
                              exc_info=True)
                 raise
-
-            if not response:
-                logger.error('Empty response from FFIO client for '
-                             f'transaction {transaction.id}')
-                return
             try:
                 async with get_session() as session:
                     if status_code:

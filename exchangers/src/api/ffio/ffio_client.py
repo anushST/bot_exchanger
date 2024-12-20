@@ -8,7 +8,7 @@ from typing import Optional
 
 import aiohttp
 import xmltodict
-from aiohttp import ClientError, ClientResponseError, ClientTimeout
+from aiohttp import ClientError, ClientTimeout
 from pydantic import BaseModel
 
 from . import schemas, constants as c
@@ -46,34 +46,19 @@ class FFIOClient:
         }
 
         async with aiohttp.ClientSession(timeout=self.timeout) as session:
-            retry_times = 0
+            retry_times = 1
             while retry_times < c.RETRY_TIMES:
                 try:
                     async with session.post(
                             url, data=req, headers=headers) as response:
                         result = await response.json()
-                        if response.status != 200:
-                            logger.error(
-                                f'HTTP Error {response.status}: {result}')
-                            raise ClientResponseError(
-                                request_info=response.request_info,
-                                history=response.history,
-                                status=response.status,
-                                message=result.get('msg', 'Unknown error')
-                            )
-
-                        if result.get('code') == self.RESP_OK:
-                            return result
-                        elif result.get('code') == 429:
+                        if result.get('code') == 429:
                             logger.warning(
-                                'Request limit exceeded. Retrying...')
-                            await asyncio.sleep(2)
+                                f'Request limit exceeded. Retrying... ({result.get('msg')})') # noqa
+                            await asyncio.sleep(retry_times)
                             retry_times += 1
                             continue
-                        else:
-                            logger.error(f'API Error: {result}')
-                            raise ex.APIError(
-                                'Incorrect status message from ffio api')
+                        return result
                 except ClientError as e:
                     raise ex.NetworkError('Network error occurred') from e
                 except asyncio.TimeoutError:
@@ -134,7 +119,7 @@ class FFIOClient:
     async def create(self, data: schemas.CreateOrder) -> schemas.OrderData:
         response = await self._req('create', data)
         response_code = response.get('code')
-        response_message = response('message')
+        response_message = response.get('msg')
         if response_code == 301:
             if response_message == c.INVALID_ADDRESS_MESSAGE:
                 raise ex.InvalidAddressError('Your address is invalid')

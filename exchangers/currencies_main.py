@@ -11,9 +11,7 @@ logger = logging.getLogger(__name__)
 
 async def run_task(task, task_id):
     try:
-        logger.info(f'Starting task {task_id}')
         await task
-        logger.info(f'Task {task_id} completed successfully')
     except Exception as e:
         logger.error(f'Task {task_id} failed with error: {e}', exc_info=True)
 

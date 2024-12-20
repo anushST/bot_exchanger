@@ -2,6 +2,7 @@ import logging
 
 from src.models import Transaction, TransactionStatuses, RateTypes
 from src.utils import format_message
+from src.transaction import transaction_codes as tc
 
 logger = logging.getLogger(__name__)
 
@@ -22,19 +23,41 @@ class TransactionNotifier:
             message = self._generate_message(transaction)
             if message:
                 await self.bot.send_message(chat_id=chat_id, text=message)
+            else:
+                logger.warning
+                (f'Message generation failed for transaction {transaction.id}')
         except Exception as e:
-            logger.error('Failed to send notification for transaction '
-                         f'{transaction.id}: {e}', exc_info=True)
+            logger.error(
+                'Failed to send notification for transaction '
+                f'{transaction.id}: {e}',
+                exc_info=True
+            )
             raise
+
+    def _get_error_message(self, lang, transaction: Transaction) -> str:
+        status_code = transaction.status_code
+        if status_code == tc.INVALID_ADDRESS_CODE:
+            return lang.transaction.error.incorrect_address
+        elif status_code == tc.OUT_OF_LIMITS_CODE:
+            return lang.transaction.error.out_of_limits
+        else:
+            error_msg = (f'Unknown error code: {status_code} '
+                         'for transaction {transaction.id}')
+            raise ValueError(error_msg)
 
     def _generate_message(self, transaction: Transaction) -> str:
         lang = transaction.user.get_lang()
-        if transaction.rate_type == RateTypes.FIXED:
+        rate_type = transaction.rate_type
+        created_text = None
+
+        if rate_type == RateTypes.FIXED:
             created_text = lang.transaction.created_fixed
-        elif transaction.rate_type == RateTypes.FLOAT:
+        elif rate_type == RateTypes.FLOAT:
             created_text = lang.transaction.created_float
         else:
-            raise Exception('No such rate_type')
+            error_msg = (f'No such rate_type: {rate_type} '
+                         f'for transaction {transaction.id}')
+            raise ValueError(error_msg)
 
         status_messages = {
             TransactionStatuses.CREATED: created_text,
@@ -44,7 +67,10 @@ class TransactionNotifier:
             TransactionStatuses.DONE: lang.transaction.done,
             TransactionStatuses.EXPIRED: lang.transaction.expired,
             TransactionStatuses.EMERGENCY: lang.transaction.emergency,
+            TransactionStatuses.ERROR: self._get_error_message(lang, transaction)  # noqa
         }
+
         message = status_messages.get(transaction.status)
+
         if message:
             return format_message(message, **transaction.to_dict())

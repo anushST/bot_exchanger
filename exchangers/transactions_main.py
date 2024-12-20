@@ -1,6 +1,7 @@
 import asyncio
 import logging
 
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.future import select
 
 from src.database import get_session, set_isolation_level
@@ -14,30 +15,56 @@ logger = logging.getLogger(__name__)
 
 
 async def main():
+    logger.info('Transaction processing started.')
     dispatcher = TransactionDispatcher()
-    await set_isolation_level('SERIALIZABLE')
+
+    try:
+        await set_isolation_level('SERIALIZABLE')
+    except Exception as e:
+        logger.critical(f'Failed to set database isolation level: {e}',
+                        exc_info=True)
+        return
+
     while True:
         try:
             async with get_session() as session:
-                result = await session.execute(
-                    select(Transaction).where(
-                        Transaction.status == TransactionStatuses.NEW
-                        and Transaction.is_dispatcher_handled.is_(False))
-                )
-                transactions = result.scalars().all()
+                try:
+                    result = await session.execute(
+                        select(Transaction).where(
+                            Transaction.status == TransactionStatuses.NEW)
+                    )
+                    transactions = result.scalars().all()
 
-                if transactions:
-                    for transaction in transactions:
-                        transaction.status = TransactionStatuses.HANDLED
-                        await session.commit()
-                        await session.refresh(transaction)
-                        await dispatcher.add(transaction)
+                    if transactions:
+                        for transaction in transactions:
+                            try:
+                                transaction.status = TransactionStatuses.HANDLED # noqa
+                                await session.commit()
+                                await session.refresh(transaction)
 
-            await asyncio.sleep(1)
+                                await dispatcher.add(transaction)
+                            except Exception as transaction_error:
+                                logger.error(
+                                    f'Failed to process transaction {transaction.id}: {transaction_error}', # noqa
+                                    exc_info=True
+                                )
+                                await session.rollback()
+
+                except SQLAlchemyError as db_error:
+                    logger.error('Database error during transaction '
+                                 f'query: {db_error}', exc_info=True)
+                    await asyncio.sleep(5)
         except Exception as e:
-            logger.error(f'Error: {e}', exc_info=True)
+            logger.error(f'Unexpected error in main loop: {e}', exc_info=True)
             await asyncio.sleep(5)
+
+        await asyncio.sleep(1)
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info('Transaction processing stopped manually.')
+    except Exception as e:
+        logger.critical(f'Critical error in application: {e}', exc_info=True)

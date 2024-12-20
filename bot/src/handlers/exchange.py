@@ -14,8 +14,6 @@ from src.states import ExchangeForm
 from src.utils import format_message
 from src.config import KeyboardCallbackData
 
-from src.api.executors import process_transaction
-
 router = Router()
 ffio_client = FFIORedisClient()
 
@@ -232,6 +230,9 @@ async def select_wallet(message: Message, lang: Language, state: FSMContext):
             await state.set_state(ExchangeForm.amount_value)
             currency_from = data.get('currency_from')
             currency_to = data.get('currency_to')
+            await state.update_data(
+                exchange_direction=DirectionTypes.FROM
+            )
             currency = currency_from
             rate = await get_rate(data)
             text = lang.exchange.select_amount_from
@@ -348,6 +349,7 @@ async def confirm(event: CallbackQuery, bot, user: User, lang: Language,
     data = await state.get_data()
     exchange = Transaction(
         user_id=user.id,
+        name=await Transaction.create_unique_name(session),
         rate_type=data.get('rate_type'),
         from_currency=data.get('currency_from'),
         from_currency_network=data.get('currency_from_network'),
@@ -363,20 +365,3 @@ async def confirm(event: CallbackQuery, bot, user: User, lang: Language,
     await event.message.edit_text(
         text='Запрос принят! Ждите', reply_markup=None
     )
-    # To remove
-    f_info = await ffio_client.get_coin_full_info(
-        data.get('currency_from'), data.get('currency_from_network')
-    )
-    t_info = await ffio_client.get_coin_full_info(
-        data.get('currency_to'), data.get('currency_to_network')
-    )
-
-    exchange = {
-        'type': data.get('rate_type'),
-        'from_ccy': f_info.code,
-        'toCcy': t_info.code,
-        'direction': data.get('exchange_direction'),
-        'amount': float(data.get('amount_value')),
-        'toAddress': data.get('wallet_address')
-    }
-    # await process_transaction(exchange, bot, event.from_user.id)

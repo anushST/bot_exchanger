@@ -4,12 +4,15 @@ import hmac
 import json
 import logging
 from decimal import Decimal
+from typing import Optional
 
 import aiohttp
 import xmltodict
+from aiohttp import ClientError, ClientResponseError, ClientTimeout
 from pydantic import BaseModel
 
-from . import schemas
+from . import schemas, constants as c
+from src.api import exceptions as ex
 from src.config import config
 
 logger = logging.getLogger(__name__)
@@ -20,16 +23,19 @@ class FFIOClient:
     FIXED_RATES_URL = 'https://ff.io/rates/fixed.xml'
     FLOAT_RATES_URL = 'https://ff.io/rates/float.xml'
 
-    def __init__(self, key: str, secret: str) -> None:
+    def __init__(self, key: str, secret: str, timeout: int = 10) -> None:
         self.key = key
         self.secret = secret
+        self.timeout = ClientTimeout(total=timeout)
 
-    def _sign(self, data: str) -> hmac.HMAC:
+    def _sign(self, data: str) -> str:
         return hmac.new(self.secret.encode(), data.encode(),
                         hashlib.sha256).hexdigest()
 
-    async def _req(self, method: str, data: BaseModel = None) -> list[dict]:
+    async def _req(self, method: str,
+                   data: Optional[BaseModel] = None) -> list[dict]:
         url = f'https://ff.io/api/v2/{method}'
+        logger.info(f'Sending request to {url} with data: {data}')
         req = data.model_dump_json(by_alias=True) if data else json.dumps({})
 
         headers = {
@@ -39,54 +45,77 @@ class FFIOClient:
             'Content-Type': 'application/json; charset=UTF-8',
         }
 
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(timeout=self.timeout) as session:
             retry_times = 0
-            while retry_times < 90:
-                async with session.post(
-                        url, data=req, headers=headers) as response:
-                    result = await response.json()
-                    if retry_times == 30:
-                        logger.warning('Retried about 30 times, error.')
-                    if response.status != 200:
-                        raise Exception(f'HTTP Error: {response.status}')
+            while retry_times < c.RETRY_TIMES:
+                try:
+                    async with session.post(
+                            url, data=req, headers=headers) as response:
+                        result = await response.json()
+                        if response.status != 200:
+                            logger.error(
+                                f'HTTP Error {response.status}: {result}')
+                            raise ClientResponseError(
+                                request_info=response.request_info,
+                                history=response.history,
+                                status=response.status,
+                                message=result.get('msg', 'Unknown error')
+                            )
 
-                    if result['code'] == self.RESP_OK:
-                        return result['data']
-                    elif result['code'] == 429:
-                        await asyncio.sleep(1)
-                        retry_times += 1
-                        continue
-                    else:
-                        raise Exception(result['msg'], result['code'])
+                        if result.get('code') == self.RESP_OK:
+                            return result
+                        elif result.get('code') == 429:
+                            logger.warning(
+                                'Request limit exceeded. Retrying...')
+                            await asyncio.sleep(2)
+                            retry_times += 1
+                            continue
+                        else:
+                            logger.error(f'API Error: {result}')
+                            raise ex.APIError(
+                                'Incorrect status message from ffio api')
+                except ClientError as e:
+                    raise ex.NetworkError('Network error occurred') from e
+                except asyncio.TimeoutError:
+                    raise ex.TimeoutError('Request timed out')
+                except json.JSONDecodeError as e:
+                    raise ex.DataProcessingError(
+                        'Failed to decode JSON response') from e
+            raise ex.MaximumRetriesError('Maximum retries happened.')
 
     async def _get_rates(self, is_fixed=True) -> list[schemas.RatesSchema]:
-        async with aiohttp.ClientSession() as session:
-            url = self.FIXED_RATES_URL if is_fixed else self.FLOAT_RATES_URL
-            async with session.get(url) as response:
-                xml_data = await response.text()
-                dict_data = xmltodict.parse(xml_data)
+        url = self.FIXED_RATES_URL if is_fixed else self.FLOAT_RATES_URL
+        try:
+            async with aiohttp.ClientSession(timeout=self.timeout) as session:
+                async with session.get(url) as response:
+                    xml_data = await response.text()
+                    dict_data = xmltodict.parse(xml_data)
 
-        rates = dict_data['rates']['item']
-        results = []
-        for rate in rates:
-            if 'tofee' in rate:
-                tofee, tofee_cur = rate['tofee'].split()
-            else:
-                tofee, tofee_cur = (None, None)
-            results.append(
-                schemas.RatesSchema(
-                    from_coin=rate['from'],
-                    to=rate['to'],
-                    in_amount=Decimal(rate['in']),
-                    out=Decimal(rate['out']),
-                    amount=Decimal(rate['amount']),
-                    tofee=Decimal(tofee) if tofee else None,
-                    tofee_currency=tofee_cur,
-                    minamount=Decimal(rate['minamount'].split()[0]),
-                    maxamount=Decimal(rate['maxamount'].split()[0])
+            rates = dict_data['rates']['item']
+            results = []
+            for rate in rates:
+                tofee, tofee_cur = rate.get('tofee', '0 None').split()
+                results.append(
+                    schemas.RatesSchema(
+                        from_coin=rate['from'],
+                        to=rate['to'],
+                        in_amount=Decimal(rate['in']),
+                        out=Decimal(rate['out']),
+                        amount=Decimal(rate['amount']),
+                        tofee=Decimal(tofee) if tofee != 'None' else None,
+                        tofee_currency=tofee_cur,
+                        minamount=Decimal(rate['minamount'].split()[0]),
+                        maxamount=Decimal(rate['maxamount'].split()[0])
+                    )
                 )
-            )
-        return results
+            return results
+        except ClientError as e:
+            raise ex.NetworkError(
+                'Network error occurred while fetching rates') from e
+        except asyncio.TimeoutError:
+            raise ex.TimeoutError('Request timed out')
+        except xmltodict.expat.ExpatError as e:
+            raise ex.DataProcessingError('Error parsing XML response') from e
 
     async def get_fixed_rates(self) -> list[schemas.RatesSchema]:
         return await self._get_rates(True)
@@ -95,56 +124,39 @@ class FFIOClient:
         return await self._get_rates(False)
 
     async def ccies(self) -> list[schemas.Currency]:
-        currencies = await self._req('ccies', )
-        result = []
-        for cur in currencies:
-            result.append(schemas.Currency(**cur))
-        return result
+        currencies = await self._req('ccies')
+        return [schemas.Currency(**cur) for cur in currencies['data']]
 
-    async def price(self, data: dict) -> dict:  # ToDo
-        return await self._req('price', data)
+    async def price(self, data) -> dict:
+        response = await self._req('price', data)
+        return response['data']
 
     async def create(self, data: schemas.CreateOrder) -> schemas.OrderData:
-        order_data = await self._req('create', data)
-        logger.info(f'Order data: {order_data}')
-        return schemas.OrderData(**order_data)
+        response = await self._req('create', data)
+        response_code = response.get('code')
+        response_message = response('message')
+        if response_code == 301:
+            if response_message == c.INVALID_ADDRESS_MESSAGE:
+                raise ex.InvalidAddressError('Your address is invalid')
+            elif response_message == c.OUT_OF_LIMITIS_MESSAGE:
+                raise ex.OutOFLimitisError('Amount is out of limits')
+            elif response_message == c.INCORRECT_DIRECTION_MESSAGE:
+                raise ex.IncorrectDirectionError(c.INCORRECT_DIRECTION_MESSAGE)
+        elif response_code == 300:
+            if response_message == c.PARTNET_INTERNAL_ERROR_MESSAGE:
+                raise ex.PartnerInternalError(c.PARTNET_INTERNAL_ERROR_MESSAGE)
+        return schemas.OrderData(**response['data'])
 
     async def order(
             self, data: schemas.CreateOrderDetails) -> schemas.OrderData:
-        order_data = await self._req('order', data)
-        return schemas.OrderData(**order_data)
+        response = await self._req('order', data)
+        return schemas.OrderData(**response['data'])
 
-    async def emergency(self, data: dict) -> dict:  # ToDo
+    async def emergency(self, data: dict) -> dict:
         return await self._req('emergency', data)
 
-    async def qr(self, data: dict) -> dict:  # ToDo
+    async def qr(self, data: dict) -> dict:
         return await self._req('qr', data)
 
 
 ffio_client = FFIOClient(config.FFIO_APIKEY, config.FFIO_SECRET)
-
-
-async def main():
-    Api = FFIOClient('rOSLgo318f85Tfz6ODeKScpicdE5dDuJY2gttlc6',
-                        'Qa3wT7MtTeC0NjZavuAqgxGfxZqD76F2CZPYF6qh')
-    body = schemas.CreateOrder(
-        type='fixed',
-        fromCcy='BSC',
-        toCcy='BTC',
-        direction='from',
-        amount=Decimal('0.1'),
-        toAddress='1BfCNvssYq4JqMqHQVL5w6WwRjWpRoR4Pw',
-    )
-    body = schemas.CreateOrderDetails(token='GJbuNg86bnG2fbkaPnZxsasQ1xkUt90NYLNS9AHv', id='YYCSH7')
-    body = {
-        'type': 'fixed',
-        'fromCcy': 'BSC',
-        'toCcy': 'BTC',
-        'direction': 'from',
-        'amount': '1'
-    }
-    results = await Api.price(body)
-    print(results)
-
-if __name__ == '__main__':
-    asyncio.run(main())

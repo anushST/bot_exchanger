@@ -1,7 +1,7 @@
 from sqlalchemy import (Boolean, Column, DECIMAL, Enum, ForeignKey,
                         Integer, String, Text)
-from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSON, UUID
+from sqlalchemy.orm import relationship
 
 from src.database import BaseModel
 
@@ -35,6 +35,7 @@ class TransactionStatuses:
 
 class Transaction(BaseModel):
     __tablename__ = 'transaction'
+    name = Column(String(6), unique=True, nullable=False)
     status_code = Column(Integer(), nullable=True)
     msg = Column(Text(), nullable=True)
     rate_type = Column(Enum(*RateTypes.CHOICES, name='transaction_types'),
@@ -54,7 +55,7 @@ class Transaction(BaseModel):
                     nullable=False, default=TransactionStatuses.NEW)
     transaction_id = Column(String(255), nullable=True)
     transaction_token = Column(String(255), nullable=True)
-    is_status_showed = Column(Boolean, nullable=False, default=False)
+    is_status_showed = Column(Boolean, nullable=False, default=True)
     extra_data = Column(JSON, nullable=True)
     final_from_amount = Column(DECIMAL(precision=50, scale=10), nullable=True)
     final_to_amount = Column(DECIMAL(precision=50, scale=10), nullable=True)

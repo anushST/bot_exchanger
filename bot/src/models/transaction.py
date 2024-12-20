@@ -1,9 +1,12 @@
 from sqlalchemy import (Boolean, Column, DECIMAL, Enum, ForeignKey,
                         Integer, String, Text)
-from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSON, UUID
+from sqlalchemy.future import select
+from sqlalchemy.inspection import inspect
+from sqlalchemy.orm import relationship
 
 from src.database import BaseModel
+from src.utils.random import generate_unique_name
 
 
 class RateTypes:
@@ -35,6 +38,7 @@ class TransactionStatuses:
 
 class Transaction(BaseModel):
     __tablename__ = 'transaction'
+    name = Column(String(6), unique=True, nullable=False)
     status_code = Column(Integer(), nullable=True)
     msg = Column(Text(), nullable=True)
     rate_type = Column(Enum(*RateTypes.CHOICES, name='transaction_types'),
@@ -54,10 +58,24 @@ class Transaction(BaseModel):
                     nullable=False, default=TransactionStatuses.NEW)
     transaction_id = Column(String(255), nullable=True)
     transaction_token = Column(String(255), nullable=True)
-    is_status_showed = Column(Boolean, nullable=False, default=False)
+    is_status_showed = Column(Boolean, nullable=False, default=True)
     extra_data = Column(JSON, nullable=True)
     final_from_amount = Column(DECIMAL(precision=50, scale=10), nullable=True)
     final_to_amount = Column(DECIMAL(precision=50, scale=10), nullable=True)
     address_to_send_amount = Column(String(255), nullable=True)
 
     user = relationship('User', lazy='joined')
+
+    def to_dict(self):
+        return ({column.key: getattr(self, column.key)
+                 for column in inspect(self).mapper.column_attrs})
+
+    @staticmethod
+    async def create_unique_name(session):
+        while True:
+            name = generate_unique_name(length=6)
+            existing = await session.execute(
+                select(Transaction).where(Transaction.name == name)
+            )
+            if not existing.scalar():
+                return name

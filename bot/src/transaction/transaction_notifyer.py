@@ -1,6 +1,7 @@
 import logging
 
-from src.models import Transaction, TransactionStatuses
+from src.models import Transaction, TransactionStatuses, RateTypes
+from src.utils import format_message
 
 logger = logging.getLogger(__name__)
 
@@ -14,26 +15,36 @@ class TransactionNotifier:
         try:
             chat_id = transaction.user.tg_id
             if not chat_id:
-                logger.warning(f'No chat_id found for transaction {transaction.id}')
+                logger.warning(
+                    f'No chat_id found for transaction {transaction.id}')
                 return
 
             message = self._generate_message(transaction)
             if message:
                 await self.bot.send_message(chat_id=chat_id, text=message)
-                logger.info(f'Notification sent for transaction {transaction.id} to chat {chat_id}')
         except Exception as e:
-            logger.error(f'Failed to send notification for transaction {transaction.id}: {e}', exc_info=True)
+            logger.error('Failed to send notification for transaction '
+                         f'{transaction.id}: {e}', exc_info=True)
             raise
 
     def _generate_message(self, transaction: Transaction) -> str:
-        status_messages = {
-            TransactionStatuses.CREATED: f'🚀 Новая транзакция создана:\nПажалуйста отправьте деньги сюда: {transaction.address_to_send_amount}.\nВот столько денег {transaction.final_from_amount} и вы получите {transaction.final_to_amount}',
-            TransactionStatuses.PENDING: f'⌛ Транзакция {transaction.id} ожидает обработки.',
-            TransactionStatuses.EXCHANGE: f'🔄 Транзакция {transaction.id} находится в процессе обмена.',
-            TransactionStatuses.WITHDRAW: f'💸 Транзакция {transaction.id} выполняет вывод средств.',
-            TransactionStatuses.DONE: f'✅ Транзакция {transaction.id} успешно завершена!',
-            TransactionStatuses.EXPIRED: f'⏳ Транзакция {transaction.id} истекла.',
-            TransactionStatuses.EMERGENCY: f'⚠️ Экстренная ситуация с транзакцией {transaction.id}.'
-        }
+        lang = transaction.user.get_lang()
+        if transaction.rate_type == RateTypes.FIXED:
+            created_text = lang.transaction.created_fixed
+        elif transaction.rate_type == RateTypes.FLOAT:
+            created_text = lang.transaction.created_float
+        else:
+            raise Exception('No such rate_type')
 
-        return status_messages.get(transaction.status)
+        status_messages = {
+            TransactionStatuses.CREATED: created_text,
+            TransactionStatuses.PENDING: lang.transaction.pending,
+            TransactionStatuses.EXCHANGE: lang.transaction.exchange,
+            TransactionStatuses.WITHDRAW: lang.transaction.withdraw,
+            TransactionStatuses.DONE: lang.transaction.done,
+            TransactionStatuses.EXPIRED: lang.transaction.expired,
+            TransactionStatuses.EMERGENCY: lang.transaction.emergency,
+        }
+        message = status_messages.get(transaction.status)
+        if message:
+            return format_message(message, **transaction.to_dict())

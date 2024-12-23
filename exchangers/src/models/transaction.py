@@ -1,6 +1,6 @@
-from sqlalchemy import (Boolean, Column, DECIMAL, Enum, ForeignKey,
+from sqlalchemy import (Boolean, Column, DateTime, DECIMAL, Enum, ForeignKey,
                         Integer, String, Text)
-from sqlalchemy.dialects.postgresql import JSON, UUID
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from src.database import BaseModel
@@ -35,9 +35,18 @@ class TransactionStatuses:
 
 class Transaction(BaseModel):
     __tablename__ = 'transaction'
+    # Transaction meta-data
     name = Column(String(6), unique=True, nullable=False)
     status_code = Column(Integer(), nullable=True)
+    status = Column(Enum(*TransactionStatuses.OPTIONS,
+                         name='transaction_statuses'),
+                    nullable=False, default=TransactionStatuses.NEW)
+    is_status_showed = Column(Boolean, nullable=False, default=True)
     msg = Column(Text(), nullable=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('user.id'),
+                     nullable=False)
+
+    # Data to create order
     rate_type = Column(Enum(*RateTypes.CHOICES, name='transaction_types'),
                        nullable=False)
     from_currency = Column(String(10), nullable=False)
@@ -48,17 +57,53 @@ class Transaction(BaseModel):
                        nullable=False)
     amount = Column(DECIMAL(precision=50, scale=10), nullable=False)
     to_address = Column(String(255), nullable=False)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('user.id'),
-                     nullable=False)
-    status = Column(Enum(*TransactionStatuses.OPTIONS,
-                         name='transaction_statuses'),
-                    nullable=False, default=TransactionStatuses.NEW)
+    tag_name = Column(String(512), nullable=True)
+    tag_value = Column(String(512), nullable=True)
+
+    # Transaction data (from endpoint)
     transaction_id = Column(String(255), nullable=True)
     transaction_token = Column(String(255), nullable=True)
-    is_status_showed = Column(Boolean, nullable=False, default=True)
-    extra_data = Column(JSON, nullable=True)
+    final_rate_type = Column(Enum(*RateTypes.CHOICES,
+                                  name='transaction_types'),
+                             nullable=True)
+    time_registred = Column(DateTime, nullable=True)
+    time_expiration = Column(DateTime, nullable=True)
+
+    # 1.1 Final from
+    final_from_currency = Column(String(10), nullable=True)
+    final_from_network = Column(String(10), nullable=True)
     final_from_amount = Column(DECIMAL(precision=50, scale=10), nullable=True)
+    final_from_address = Column(String(255), nullable=True)
+    final_from_tag_name = Column(String(512), nullable=True)
+    final_from_tag_value = Column(String(512), nullable=True)
+    # 1.1.1 Final from received
+    received_from_id = Column(String(512), nullable=True)
+    received_from_amount = Column(DECIMAL(precision=50, scale=10),
+                                  nullable=True)
+
+    # 1.2 Final to
+    final_to_currency = Column(String(10), nullable=True)
+    final_to_network = Column(String(10), nullable=True)
     final_to_amount = Column(DECIMAL(precision=50, scale=10), nullable=True)
+    final_to_address = Column(String(255), nullable=True)
+    final_to_tag_name = Column(String(512), nullable=True)
+    final_to_tag_value = Column(String(512), nullable=True)
+    # 1.2.1 Final to received
+    received_to_id = Column(String(512), nullable=True)
+    received_to_amount = Column(DECIMAL(precision=50, scale=10),
+                                nullable=True)
+
+    # 1.3 Final back (returned)
+    final_back_currency = Column(String(10), nullable=True)
+    final_back_network = Column(String(10), nullable=True)
+    final_back_amount = Column(DECIMAL(precision=50, scale=10), nullable=True)
+    final_back_address = Column(String(255), nullable=True)
+    final_back_tag_name = Column(String(512), nullable=True)
+    final_back_tag_value = Column(String(512), nullable=True)
+    # 1.3.1 Final back received
+    received_back_id = Column(String(512), nullable=True)
+    received_back_amount = Column(DECIMAL(precision=50, scale=10),
+                                  nullable=True)
     address_to_send_amount = Column(String(255), nullable=True)
 
     user = relationship('User', lazy='joined')

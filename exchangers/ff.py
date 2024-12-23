@@ -84,7 +84,9 @@ if __name__ == '__main__':
     #     'address': '0x2ace0222ebc017c81549af01777b450232601fe3',
     # }
 
-    response = Api.order(data)
+    response = Api.ccies()
 
     from pprint import pprint
-    pprint(response)
+    for r in response:
+        if r['tag'] is not None:
+            pprint(r)

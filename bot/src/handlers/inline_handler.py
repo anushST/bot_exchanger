@@ -5,11 +5,10 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import (InlineQueryResultArticle,
                            InputTextMessageContent)
 
-from src.api.ffio import FFIORedisClient
+from src.api.ffio import ffio_redis_client as frc
 from src.states import ExchangeForm
 
 router = Router()
-ffio_client = FFIORedisClient()
 
 
 @router.inline_query()
@@ -38,7 +37,7 @@ async def inline_query_handler(inline_query: types.InlineQuery, bot: Bot,
     elif current_state in [ExchangeForm.currency_to,
                            ExchangeForm.currency_from]:
         user_query = (inline_query.query or '').lower()
-        currencies = await ffio_client.get_coins()
+        currencies = await frc.get_coins()
         if user_query:
             currencies = [
                 currency for currency in currencies if currency.lower().startswith(user_query) # noqa

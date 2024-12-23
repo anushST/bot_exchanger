@@ -103,3 +103,6 @@ class FFIORedisClient:
         """Retrieve floating exchange rate between two coins."""
         return await self._get_rate('float', from_coin, from_coin_network,
                                     to_coin, to_coin_network)
+
+
+ffio_redis_client = FFIORedisClient()

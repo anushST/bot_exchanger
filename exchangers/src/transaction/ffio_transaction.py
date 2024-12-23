@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from datetime import datetime
 
 from sqlalchemy.future import select
 
@@ -95,7 +96,7 @@ class FFioTransaction:
                 )
             except ex.RedisError as e:
                 logger.error('Redis error while fetching currency info '
-                             f'for transaction {transaction.id}: {e}',
+                             f'for transaction {self.transaction_id}: {e}',
                              exc_info=True)
                 raise
 
@@ -109,32 +110,49 @@ class FFioTransaction:
             )
 
             response = None
-            status_code = None
+            error_status_code = None
             try:
                 response = await ffio_client.create(data)
             except api_ex.InvalidAddressError:
-                status_code = tc.INVALID_ADDRESS_CODE
+                error_status_code = tc.INVALID_ADDRESS_CODE
             except api_ex.OutOFLimitisError:
-                status_code = tc.OUT_OF_LIMITS_CODE
+                error_status_code = tc.OUT_OF_LIMITS_CODE
             except ex.ClientError as e:
                 logger.error('Error from FFIO client during order creation '
-                             f'for transaction {transaction.id}: {e}',
+                             f'for transaction {self.transaction_id}: {e}',
                              exc_info=True)
                 raise
             try:
                 async with get_session() as session:
-                    if status_code:
+                    if error_status_code:
                         transaction.status = TransactionStatuses.ERROR
                         transaction.is_status_showed = False
-                        transaction.status_code = status_code
+                        transaction.status_code = error_status_code
                     else:
-                        transaction.transaction_id = response.id
-                        transaction.transaction_token = response.token
                         transaction.status = TransactionStatuses.CREATED
                         transaction.is_status_showed = False
+
+                        transaction.transaction_id = response.id
+                        transaction.transaction_token = response.token
+                        transaction.final_rate_type = response.type.value
+                        transaction.time_registred = datetime.fromtimestamp(response.time.reg) # noqa
+                        transaction.time_expiration = datetime.fromtimestamp(response.time.expiration) # noqa
+
+                        # Final from
+                        transaction.from_currency = response.from_info.coin
+                        transaction.from_currency_network = response.from_info.network # noqa
                         transaction.final_from_amount = response.from_info.amount # noqa
+                        transaction.final_from_address = response.from_info.address # noqa
+                        transaction.final_from_tag_name = response.from_info.tag_name # noqa
+                        transaction.final_from_tag_value = response.from_info.tag_value # noqa
+
+                        # Final to
+                        transaction.final_to_currency = response.to_info.coin
+                        transaction.final_to_network = response.to_info.network
                         transaction.final_to_amount = response.to_info.amount
-                        transaction.address_to_send_amount = response.from_info.address # noqa
+                        transaction.final_to_address = response.to_info.address
+                        transaction.final_to_tag_name = response.to_info.tag_name # noqa
+                        transaction.final_to_tag_value = response.to_info.tag_value # noqa
                     session.add(transaction)
                     await session.commit()
                     await session.refresh(transaction)
@@ -146,10 +164,11 @@ class FFioTransaction:
                     'Error accessing transaction database') from e
 
             logger.info(
-                f'Transaction {transaction.id} successfully handled as NEW.')
+                f'Transaction {self.transaction_id} successfully '
+                'handled as NEW.')
         except Exception as e:
             logger.error('Error handling NEW transaction '
-                         f'{transaction.id}: {e}', exc_info=True)
+                         f'{self.transaction_id}: {e}', exc_info=True)
             raise
 
     async def _handle_handled(self, transaction: Transaction) -> None:
@@ -163,13 +182,13 @@ class FFioTransaction:
                 response = await ffio_client.order(data)
             except ex.ClientError as e:
                 logger.error('Error from FFIO client during order retrieval '
-                             f'for transaction {transaction.id}: {e}',
+                             f'for transaction {self.transaction_id}: {e}',
                              exc_info=True)
                 raise
 
             if not response:
                 logger.error('Empty response from FFIO client for '
-                             f'transaction {transaction.id}')
+                             f'transaction {self.transaction_id}')
                 return
 
             status_mapping = {
@@ -185,7 +204,7 @@ class FFioTransaction:
             new_status = status_mapping.get(response.status)
             if new_status is None:
                 logger.error('Unknown status retrieved for transaction '
-                             f'{transaction.id}: {response.status}')
+                             f'{self.transaction_id}: {response.status}')
                 raise ValueError('Unknown transaction status received')
 
             try:
@@ -208,5 +227,5 @@ class FFioTransaction:
 
         except Exception as e:
             logger.error('Error handling HANDLED transaction '
-                         f'{transaction.id}: {e}', exc_info=True)
+                         f'{self.transaction_id}: {e}', exc_info=True)
             raise

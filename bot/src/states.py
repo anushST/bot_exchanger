@@ -12,6 +12,7 @@ class ExchangeForm(StatesGroup):
 
     rate_type = State()
     wallet_address = State()
+    tag = State()
     amount_currency = State()
     amount_value = State()
     amount_direction = State()

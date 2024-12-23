@@ -56,7 +56,8 @@ class _CurrencyInfo(BaseModel):
     alias: Optional[str] = None
     amount: Optional[Decimal] = None
     address: Optional[str] = None
-    tag: Optional[str] = None
+    tag_value: Optional[str] = Field(None, alias='tag')
+    tag_name: Optional[str] = Field(None, alias='tagName')
     address_mix: Optional[str] = Field(None, alias='addressMix')
     req_confirmations: Optional[int] = Field(None, alias='reqConfirmations')
     max_confirmations: Optional[int] = Field(None, alias='maxConfirmations')

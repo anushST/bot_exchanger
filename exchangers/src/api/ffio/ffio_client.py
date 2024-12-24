@@ -112,10 +112,6 @@ class FFIOClient:
         currencies = await self._req('ccies')
         return [schemas.Currency(**cur) for cur in currencies['data']]
 
-    async def price(self, data) -> dict:
-        response = await self._req('price', data)
-        return response['data']
-
     async def create(self, data: schemas.CreateOrder) -> schemas.OrderData:
         response = await self._req('create', data)
         logger.info(response)
@@ -138,11 +134,8 @@ class FFIOClient:
         response = await self._req('order', data)
         return schemas.OrderData(**response['data'])
 
-    async def emergency(self, data: dict) -> dict:
+    async def emergency(self, data: schemas.CreateEmergency) -> bool:
         return await self._req('emergency', data)
-
-    async def qr(self, data: dict) -> dict:
-        return await self._req('qr', data)
 
 
 ffio_client = FFIOClient(config.FFIO_APIKEY, config.FFIO_SECRET)

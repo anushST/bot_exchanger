@@ -67,26 +67,24 @@ if __name__ == '__main__':
                         'Qa3wT7MtTeC0NjZavuAqgxGfxZqD76F2CZPYF6qh')
     data = {
         'type': 'fixed',
-        'fromCcy': 'USDTBSC',
-        'toCcy': 'BTCBSC',
+        'fromCcy': 'TON',
+        'toCcy': 'XRP',
         'direction': 'from',
-        'amount': '6',
-        'toAddress': '0x2ace0222ebc017c81549af01777b450232601fe3'
+        'amount': '0.5',
+        'toAddress': 'rNxp4h8apvRis6mJf9Sh8C6iRxfrDWN7AV',
+        'tag': '424076653',
     }
     data = {
-        'id': '3VPZ5H',
-        'token': 'fjDfHxKkpXhUxfRmHrVEbauixB9pEyYmJRPz7yML'
+        'id': 'CFD9PM',
+        'token': 'iO4gm5wBUXcIuIfpPkx1k2a248z1NQ7C0qUR67RZ'
     }
     # data = {
-    #     'id': 'NGTY7B',
-    #     'token': 'H6djeXSYMKuK6ecIkbr74gXP1Nd9B6iWyv14gbod',
-    #     'choice': 'REFUND',
-    #     'address': '0x2ace0222ebc017c81549af01777b450232601fe3',
+    #     'id': 'CFD9PM',
+    #     'token': 'iO4gm5wBUXcIuIfpPkx1k2a248z1NQ7C0qUR67RZ',
+    #     'choice': 'EXCHANGE',
     # }
 
-    response = Api.ccies()
+    response = Api.order(data)
 
     from pprint import pprint
-    for r in response:
-        if r['tag'] is not None:
-            pprint(r)
+    pprint(response)

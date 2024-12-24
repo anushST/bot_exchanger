@@ -190,10 +190,6 @@ async def select_currency_to(message: Message, lang: Language,
                              state: FSMContext, session: Session):
     currencies = await frc.get_coins()
     currency = message.text
-    currency_from = await state.get_value("currency_from")
-    if currency_from == currency:
-        await message.answer(lang.exchange.same_currency_error)
-        return
     if currency in currencies:
         networks = await frc.get_networks(currency)
         await state.update_data(currency_to=currency)
@@ -214,7 +210,12 @@ async def select_network_to(message: Message, lang: Language,
     currency = await state.get_value('currency_to')
     networks = await frc.get_networks(currency)
     network = message.text
+    currency_from = await state.get_value("currency_from")
+    network_from = await state.get_value('currency_from_network')
     if network in networks:
+        if currency_from == currency and network == network_from:
+            await message.answer(lang.exchange.same_currency_error)
+            return
         currency_info = await frc.get_coin_full_info(
             currency, network
         )

@@ -1,6 +1,6 @@
 # flake8: noqa: E401
 from .currencies_list import Currency
-from .emergency import CreateEmergency, EmergencyChoices
+from .emergency import CreateEmergency, EmergencyChoice
 from .order import (
     CreateOrder, CreateOrderDetails, Direction,
     EmergencyChoice, EmergencyStatus,

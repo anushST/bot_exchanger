@@ -83,6 +83,7 @@ class Transaction(BaseModel):
     received_from_id = Column(String(512), nullable=True)
     received_from_amount = Column(DECIMAL(precision=50, scale=10),
                                   nullable=True)
+    received_from_confirmations = Column(Integer(), nullable=True)
 
     # 1.2 Final to
     final_to_currency = Column(String(10), nullable=True)
@@ -95,6 +96,7 @@ class Transaction(BaseModel):
     received_to_id = Column(String(512), nullable=True)
     received_to_amount = Column(DECIMAL(precision=50, scale=10),
                                 nullable=True)
+    received_to_confirmations = Column(Integer(), nullable=True)
 
     # 1.3 Final back (returned)
     final_back_currency = Column(String(10), nullable=True)
@@ -107,7 +109,7 @@ class Transaction(BaseModel):
     received_back_id = Column(String(512), nullable=True)
     received_back_amount = Column(DECIMAL(precision=50, scale=10),
                                   nullable=True)
-    address_to_send_amount = Column(String(255), nullable=True)
+    received_back_confirmations = Column(Integer(), nullable=True)
 
     user = relationship('User', lazy='joined')
 

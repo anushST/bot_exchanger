@@ -106,7 +106,8 @@ class FFioTransaction:
                 toCcy=toCcy.code,
                 direction=transaction.direction,
                 amount=transaction.amount,
-                toAddress=transaction.to_address
+                toAddress=transaction.to_address,
+                tag=transaction.tag_value
             )
 
             response = None
@@ -139,8 +140,8 @@ class FFioTransaction:
                         transaction.time_expiration = datetime.fromtimestamp(response.time.expiration) # noqa
 
                         # Final from
-                        transaction.from_currency = response.from_info.coin
-                        transaction.from_currency_network = response.from_info.network # noqa
+                        transaction.final_from_currency = response.from_info.coin # noqa
+                        transaction.final_from_network = response.from_info.network # noqa
                         transaction.final_from_amount = response.from_info.amount # noqa
                         transaction.final_from_address = response.from_info.address # noqa
                         transaction.final_from_tag_name = response.from_info.tag_name # noqa
@@ -208,16 +209,28 @@ class FFioTransaction:
                 raise ValueError('Unknown transaction status received')
 
             try:
-                if new_status != transaction.status:
-                    async with get_session() as session:
+                async with get_session() as session:
+                    if new_status != transaction.status:
                         transaction.status = new_status
                         transaction.is_status_showed = False
-                        session.add(transaction)
-                        await session.commit()
-                        await session.refresh(transaction)
+                        logger.info(f'Transaction {self.transaction_id} updated to ' # noqa
+                                    f'status {new_status}.')
+                    # from
+                    transaction.received_from_id = response.from_info.tx.id
+                    transaction.received_from_amount = response.from_info.tx.amount # noqa
+                    transaction.received_from_confirmations = response.from_info.tx.confirmations # noqa
+                    # to
+                    transaction.received_to_id = response.to_info.tx.id
+                    transaction.received_to_amount = response.to_info.tx.amount # noqa
+                    transaction.received_to_confirmations = response.to_info.tx.confirmations # noqa
+                    # back
+                    transaction.received_back_id = response.back_info.tx.id
+                    transaction.received_back_amount = response.back_info.tx.amount # noqa
+                    transaction.received_back_confirmations = response.back_info.tx.confirmations # noqa
 
-                    logger.info(f'Transaction {transaction.id} updated to '
-                                f'status {new_status}.')
+                    session.add(transaction)
+                    await session.commit()
+                    await session.refresh(transaction)
             except Exception as e:
                 logger.error(f'Error retrieving transaction '
                              f'{self.transaction_id} '

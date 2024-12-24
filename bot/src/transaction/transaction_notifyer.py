@@ -1,7 +1,9 @@
 import logging
+from datetime import datetime
 
 from src.models import Transaction, TransactionStatuses, RateTypes
 from src.utils import format_message
+from src.utils.time import difference_in_minutes
 from src.transaction import transaction_codes as tc
 
 logger = logging.getLogger(__name__)
@@ -45,6 +47,11 @@ class TransactionNotifier:
                          f'for transaction {transaction.id}')
             raise ValueError(error_msg)
 
+    def _difference_in_minutes(start_time: datetime,
+                               end_time: datetime) -> int:
+        """"""
+        pass
+
     def _generate_message(self, transaction: Transaction) -> str:
         lang = transaction.user.get_lang()
         rate_type = transaction.rate_type
@@ -71,6 +78,25 @@ class TransactionNotifier:
         }
 
         message = status_messages.get(transaction.status)
+        tag_data_from = format_message(
+            lang.transaction.tag_data,
+            tag_name=transaction.final_from_tag_name,
+            tag_value=transaction.final_from_tag_value)
+        tag_data_to = format_message(
+            lang.transaction.tag_data,
+            tag_name=transaction.final_to_tag_name,
+            tag_value=transaction.final_to_tag_value)
+        expire_time_minute = None
+        if transaction.time_expiration:
+            expire_time_minute = difference_in_minutes(
+                datetime.now(),
+                transaction.time_expiration
+            )
 
         if message:
-            return format_message(message, **transaction.to_dict())
+            return format_message(
+                message,
+                tag_data_from=tag_data_from,
+                tag_data_to=tag_data_to,
+                expire_time_minute=expire_time_minute,
+                **transaction.to_dict())

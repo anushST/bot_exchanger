@@ -86,7 +86,7 @@ class CreateOrder(BaseModel):
     direction: Direction
     amount: Decimal
     to_address: str = Field(..., alias='toAddress')
-    tag: Optional[bool] = None
+    tag: Optional[str] = None
     refcode: Optional[str] = None
     afftax: Optional[float] = None
 

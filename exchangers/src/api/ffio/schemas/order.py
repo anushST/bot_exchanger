@@ -4,7 +4,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from .emergency import EmergencyChoice
+from .emergency import EmergencyChoice, EmergencyStatus
 
 
 class OrderType(Enum):
@@ -25,13 +25,6 @@ class OrderStatus(Enum):
     DONE = "DONE"
     EXPIRED = "EXPIRED"
     EMERGENCY = "EMERGENCY"
-
-
-class EmergencyStatus(Enum):
-    EXPIRED = "EXPIRED"
-    LESS = "LESS"
-    MORE = "MORE"
-    LIMIT = "LIMIT"
 
 
 class _TransactionDetails(BaseModel):

@@ -2,7 +2,7 @@ import logging
 from decimal import Decimal, InvalidOperation
 
 from aiogram import Router, F, Bot
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 
@@ -136,7 +136,8 @@ async def select_rate_type(event: CallbackQuery, lang: Language,
 
 @router.message(ExchangeForm.currency_from)
 async def select_currency_from(message: Message, lang: Language,
-                               state: FSMContext, session: Session):
+                               state: FSMContext,
+                               session: AsyncSession):
     currencies = await frc.get_coins()
     currency = message.text
     if currency in currencies:
@@ -155,7 +156,8 @@ async def select_currency_from(message: Message, lang: Language,
 
 @router.message(ExchangeForm.currency_from_network)
 async def select_network_from(message: Message, lang: Language,
-                              state: FSMContext, session: Session):
+                              state: FSMContext,
+                              session: AsyncSession):
     currency = await state.get_value("currency_from")
     networks = await frc.get_networks(currency)
     network = message.text
@@ -187,7 +189,8 @@ async def select_network_from(message: Message, lang: Language,
 
 @router.message(ExchangeForm.currency_to)
 async def select_currency_to(message: Message, lang: Language,
-                             state: FSMContext, session: Session):
+                             state: FSMContext,
+                             session: AsyncSession):
     currencies = await frc.get_coins()
     currency = message.text
     if currency in currencies:
@@ -410,7 +413,7 @@ async def select_amount(message: Message, lang: Language,
 @router.callback_query(ExchangeForm.confirm,
                        F.data == KeyboardCallbackData.EXCHANGE_CONFIRM)
 async def confirm(event: CallbackQuery, bot: Bot, user: User, lang: Language,
-                  state: FSMContext, session: Session):
+                  state: FSMContext, session: AsyncSession):
     data = await state.get_data()
     exchange = Transaction(
         user_id=user.id,

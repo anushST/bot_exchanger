@@ -1,9 +1,7 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-from sqlalchemy.future import select
 
 from src.lang import Language
-from src.models.user import User
 from src.config import KeyboardCallbackData
 
 

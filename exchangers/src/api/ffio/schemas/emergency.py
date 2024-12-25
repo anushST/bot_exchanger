@@ -10,6 +10,13 @@ class EmergencyChoice(Enum):
     REFUND = "REFUND"
 
 
+class EmergencyStatus(Enum):
+    EXPIRED = "EXPIRED"
+    LESS = "LESS"
+    MORE = "MORE"
+    LIMIT = "LIMIT"
+
+
 class CreateEmergency(BaseModel):
     id: str
     token: str

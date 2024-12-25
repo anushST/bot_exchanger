@@ -33,6 +33,9 @@ class KeyboardCallbackData:
     EXCHANGE_FIX_RATE = "exchange_fix_rate"
     EXCHANGE_FLOAT_RATE = "exchange_float_rate"
 
+    EMERGENCY_EXCHANGE = 'emergency_exchange:'  # after goes transaction id
+    EMERGENCY_REFUND = 'emergency_refund:'  # after goes transaction id
+
     FAQ = "faq"
     FAQ_QUESTION = "faq_question_"
 

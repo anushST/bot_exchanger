@@ -1,6 +1,6 @@
 import importlib
 
-HANDLERS = ["start", "faq", 'exchange', 'inline_handler']
+HANDLERS = ["start", "faq", 'exchange', 'inline_handler', 'emergency']
 
 
 def init_handlers(dispatcher):

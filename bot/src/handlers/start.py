@@ -13,7 +13,8 @@ from src.config import KeyboardCallbackData
 router = Router()
 
 @router.message(CommandStart())
-async def main(message: Message, user: User, lang: Language):
+async def main(message: Message, user: User, lang: Language, state: FSMContext):
+    await state.clear()
     await message.answer(
         format_message(lang.start, user_name=user.tg_name),
         reply_markup=keyboards.main.get_start_kb(user, lang)
@@ -21,7 +22,6 @@ async def main(message: Message, user: User, lang: Language):
 
 @router.message(MultilanguageTextFilter("keyboard.general.cancel"))
 async def cancel(message: Message, user: User, lang: Language, state: FSMContext):
-    await state.clear()
     await main(message, user, lang)
 
 @router.callback_query(F.data == KeyboardCallbackData.START)

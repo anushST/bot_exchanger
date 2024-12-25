@@ -21,6 +21,21 @@ class DirectionTypes:
     CHOICES = (FROM, TO)
 
 
+class EmergencyChoices:
+    NONE = "NONE"
+    EXCHANGE = "EXCHANGE"
+    REFUND = "REFUND"
+    CHOICES = (NONE, EXCHANGE, REFUND,)
+
+
+class EmergencyStatuses:
+    EXPIRED = "EXPIRED"
+    LESS = "LESS"
+    MORE = "MORE"
+    LIMIT = "LIMIT"
+    CHOICES = (EXPIRED, LESS, MORE, LIMIT,)
+
+
 class TransactionStatuses:
     NEW = 'new'  # New order
     HANDLED = 'handled'  # Transaction handled by one of the exchangers
@@ -110,6 +125,18 @@ class Transaction(BaseModel):
     received_back_amount = Column(DECIMAL(precision=50, scale=10),
                                   nullable=True)
     received_back_confirmations = Column(Integer(), nullable=True)
+
+    # 1.4 Emergency
+    is_emergency_handled = Column(Boolean, default=False)
+    emergency_status = Column(Enum(*EmergencyStatuses.CHOICES,
+                                   name='emergency_statuses'),
+                              nullable=True)
+    emergency_choise = Column(Enum(*EmergencyChoices.CHOICES,
+                                   name='emergency_choises'),
+                              nullable=True)
+    emergency_address = Column(String(255), nullable=True)
+    emergency_tag_name = Column(String(512), nullable=True)
+    emergency_tag_value = Column(String(512), nullable=True)
 
     user = relationship('User', lazy='joined')
 

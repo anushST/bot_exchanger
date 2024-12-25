@@ -35,6 +35,7 @@ class FixedFloatApi:
             raise Exception(f'HTTP Error: {response.status_code}')
 
         result = response.json()
+        print(result)
         if result['code'] == self.RESP_OK:
             return result['data']
         else:
@@ -78,13 +79,13 @@ if __name__ == '__main__':
         'id': 'CFD9PM',
         'token': 'iO4gm5wBUXcIuIfpPkx1k2a248z1NQ7C0qUR67RZ'
     }
-    # data = {
-    #     'id': 'CFD9PM',
-    #     'token': 'iO4gm5wBUXcIuIfpPkx1k2a248z1NQ7C0qUR67RZ',
-    #     'choice': 'EXCHANGE',
-    # }
+    data = {
+        'id': 'PAMDCF',
+        'token': '1avvL9lLeG3fraUI9ya14uBDQUW8auPaSUtoATu9',
+        'choice': 'EXCHANGE',
+    }
 
-    response = Api.order(data)
+    response = Api.emergency(data)
 
     from pprint import pprint
     pprint(response)

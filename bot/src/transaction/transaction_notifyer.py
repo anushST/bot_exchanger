@@ -1,6 +1,9 @@
 import logging
 from datetime import datetime
 
+from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup
+
+from src.keyboards import emergency as emerg_kbs
 from src.models import Transaction, TransactionStatuses, RateTypes
 from src.utils import format_message
 from src.utils.time import difference_in_minutes
@@ -23,8 +26,10 @@ class TransactionNotifier:
                 return
 
             message = self._generate_message(transaction)
+            reply_markup = self._get_reply_markup(transaction)
             if message:
-                await self.bot.send_message(chat_id=chat_id, text=message)
+                await self.bot.send_message(chat_id=chat_id, text=message,
+                                            reply_markup=reply_markup)
             else:
                 logger.warning
                 (f'Message generation failed for transaction {transaction.id}')
@@ -47,10 +52,15 @@ class TransactionNotifier:
                          f'for transaction {transaction.id}')
             raise ValueError(error_msg)
 
-    def _difference_in_minutes(start_time: datetime,
-                               end_time: datetime) -> int:
-        """"""
-        pass
+    def _get_reply_markup(
+            self, transaction: Transaction
+            ) -> InlineKeyboardMarkup | ReplyKeyboardMarkup:
+        lang = transaction.user.get_lang()
+        reply_markup = None
+        if transaction.status == TransactionStatuses.EMERGENCY:
+            reply_markup = emerg_kbs.get_emergency_choice_kb(
+                lang, transaction.id)
+        return reply_markup
 
     def _generate_message(self, transaction: Transaction) -> str:
         lang = transaction.user.get_lang()

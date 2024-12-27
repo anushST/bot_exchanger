@@ -68,23 +68,22 @@ if __name__ == '__main__':
                         'Qa3wT7MtTeC0NjZavuAqgxGfxZqD76F2CZPYF6qh')
     data = {
         'type': 'fixed',
-        'fromCcy': 'TON',
-        'toCcy': 'XRP',
+        'fromCcy': 'BSC',
+        'toCcy': 'BTC',
         'direction': 'from',
-        'amount': '0.5',
-        'toAddress': 'rNxp4h8apvRis6mJf9Sh8C6iRxfrDWN7AV',
-        'tag': '424076653',
+        'amount': '0.019958',
+        'toAddress': '1BfCNvssYq4JqMqHQVL5w6WwRjWpRoR4Pw',
     }
     data = {
-        'id': 'CFD9PM',
-        'token': 'iO4gm5wBUXcIuIfpPkx1k2a248z1NQ7C0qUR67RZ'
+        'id': 'W8MCXU',
+        'token': 'kcjm7QmZknYnppnm26aM1LTRldVp8ATYtJgZrsoZ'
     }
     data = {
-        'id': 'PAMDCF',
-        'token': '1avvL9lLeG3fraUI9ya14uBDQUW8auPaSUtoATu9',
-        'choice': 'EXCHANGE',
+        'id': 'ZUC5VG',
+        'token': 'PpzmPQz0k0FuPgaxzr10vyUhduolkKmn7eushIFI',
+        'choice': 'REFUND',
+        'address': '0x2ace0222ebc017c81549af01777b450232601fe3'
     }
-
     response = Api.emergency(data)
 
     from pprint import pprint

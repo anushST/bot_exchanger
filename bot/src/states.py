@@ -19,3 +19,6 @@ class ExchangeForm(StatesGroup):
 
     confirm = State()
     exchange_id = State()
+
+    emergency_address = State()
+    emergency_tag = State()

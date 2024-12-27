@@ -14,3 +14,9 @@ class ClientError(Exception):
     """The base class for client errors."""
 
     pass
+
+
+class TransactionDoesNotExistError(Exception):
+    """Raises when transaction does not exist."""
+
+    pass

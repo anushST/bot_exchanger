@@ -35,6 +35,7 @@ class KeyboardCallbackData:
 
     EMERGENCY_EXCHANGE = 'emergency_exchange:'  # after goes transaction id
     EMERGENCY_REFUND = 'emergency_refund:'  # after goes transaction id
+    EMERGENCY_RETRY_ADDRESS = 'retry_address:'
 
     FAQ = "faq"
     FAQ_QUESTION = "faq_question_"

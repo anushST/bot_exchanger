@@ -128,17 +128,23 @@ class Transaction(BaseModel):
 
     # 1.4 Emergency
     is_emergency_handled = Column(Boolean, default=False)
-    emergency_status = Column(Enum(*EmergencyStatuses.CHOICES,
-                                   name='emergency_statuses'),
-                              nullable=True)
+    emergency_statuses = Column(String(255), nullable=True)
     emergency_choise = Column(Enum(*EmergencyChoices.CHOICES,
                                    name='emergency_choises'),
                               nullable=True)
     emergency_address = Column(String(255), nullable=True)
     emergency_tag_name = Column(String(512), nullable=True)
     emergency_tag_value = Column(String(512), nullable=True)
+    made_emergency_action = Column(Boolean(), nullable=True, default=False) # Use for error address or other problems # noqa
 
     user = relationship('User', lazy='joined')
+
+    def set_emergency_statuses(self, statuses: list[str]) -> bool:
+        self.emergency_statuses = ':'.join(statuses)
+        return True
+
+    def get_emergency_statuses(self) -> list[str]:
+        return self.emergency_statuses.split(':')
 
     def to_dict(self):
         return ({column.key: getattr(self, column.key)

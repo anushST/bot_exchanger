@@ -103,7 +103,7 @@ class FFioTransaction:
 
             data = schemas.CreateOrder(
                 type=transaction.rate_type,
-                fromCcy=fromCcy.code,
+                fromCcy='BSC',
                 toCcy=toCcy.code,
                 direction=transaction.direction,
                 amount=transaction.amount,
@@ -211,7 +211,24 @@ class FFioTransaction:
                             )
                         else:
                             raise Exception('No such choise')  # ToDo
-                        await ffio_client.emergency(data)
+
+                        is_error = False
+                        try:
+                            if transaction.made_emergency_action:
+                                transaction.made_emergency_action = False
+                                await ffio_client.emergency(data)
+                            else:
+                                is_error = True
+                        except api_ex.InvalidAddressError:
+                            transaction.is_status_showed = False
+                            transaction.status_code = tc.INVALID_EMERGENCY_ADDRESS_CODE # noqa
+                            is_error = True
+                        except ex.ClientError as e:
+                            logger.error('Error from FFIO client during order creation ' # noqa
+                                         f'for transaction {self.transaction_id}: {e}', # noqa
+                                         exc_info=True)
+                            raise
+
                         try:
                             async with get_session() as session:
                                 transaction.is_emergency_handled = True
@@ -223,7 +240,8 @@ class FFioTransaction:
                                          f'from database: {e}', exc_info=True)
                             raise ex.DatabaseError(
                                 'Error accessing transaction database') from e
-                        return
+                        if not is_error:
+                            return
                 except Exception as e:
                     logger.error(f'Error during transaction processing '
                                  f'{self.transaction_id}: {e}', exc_info=True)
@@ -244,6 +262,7 @@ class FFioTransaction:
 
             try:
                 response = await ffio_client.order(data)
+                print(response)
             except ex.ClientError as e:
                 logger.error('Error from FFIO client during order retrieval '
                              f'for transaction {self.transaction_id}: {e}',
@@ -287,9 +306,16 @@ class FFioTransaction:
                     transaction.received_to_amount = response.to_info.tx.amount # noqa
                     transaction.received_to_confirmations = response.to_info.tx.confirmations # noqa
                     # back
+                    transaction.final_back_currency = response.back_info.coin
+                    transaction.final_back_network = response.back_info.network
+                    transaction.final_back_address = response.back_info.address
+                    transaction.final_back_tag_name = response.back_info.tag_name # noqa
+                    transaction.final_back_tag_value = response.back_info.tag_value # noqa
                     transaction.received_back_id = response.back_info.tx.id
                     transaction.received_back_amount = response.back_info.tx.amount # noqa
                     transaction.received_back_confirmations = response.back_info.tx.confirmations # noqa
+                    # emergency
+                    transaction.set_emergency_statuses(response.emergency.status) # noqa
 
                     session.add(transaction)
                     await session.commit()

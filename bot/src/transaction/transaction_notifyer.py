@@ -4,7 +4,8 @@ from datetime import datetime
 from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup
 
 from src.keyboards import emergency as emerg_kbs
-from src.models import Transaction, TransactionStatuses, RateTypes
+from src.models import (EmergencyStatuses,  RateTypes,
+                        Transaction, TransactionStatuses)
 from src.utils import format_message
 from src.utils.time import difference_in_minutes
 from src.transaction import transaction_codes as tc
@@ -47,6 +48,8 @@ class TransactionNotifier:
             return lang.transaction.error.incorrect_address
         elif status_code == tc.OUT_OF_LIMITS_CODE:
             return lang.transaction.error.out_of_limits
+        elif status_code == tc.INVALID_EMERGENCY_ADDRESS_CODE:
+            return lang.transaction.error.incorrect_emergency_address
         elif status_code:
             error_msg = (f'Unknown error code: {status_code} '
                          f'for transaction {transaction.id}')
@@ -58,8 +61,15 @@ class TransactionNotifier:
         lang = transaction.user.get_lang()
         reply_markup = None
         if transaction.status == TransactionStatuses.EMERGENCY:
-            reply_markup = emerg_kbs.get_emergency_choice_kb(
-                lang, transaction.id)
+            if transaction.status_code == tc.INVALID_EMERGENCY_ADDRESS_CODE:
+                reply_markup = emerg_kbs.get_again_address_kb(
+                    lang, transaction.id)
+            else:
+                has_exchange = True
+                if EmergencyStatuses.LIMIT in transaction.get_emergency_statuses(): # noqa
+                    has_exchange = False
+                reply_markup = emerg_kbs.get_emergency_choice_kb(
+                    lang, transaction.id, has_exchange)
         return reply_markup
 
     def _generate_message(self, transaction: Transaction) -> str:
@@ -83,7 +93,7 @@ class TransactionNotifier:
             TransactionStatuses.WITHDRAW: lang.transaction.withdraw,
             TransactionStatuses.DONE: lang.transaction.done,
             TransactionStatuses.EXPIRED: lang.transaction.expired,
-            TransactionStatuses.EMERGENCY: lang.transaction.emergency,
+            TransactionStatuses.EMERGENCY: lang.transaction.emergency.choice,
             TransactionStatuses.ERROR: self._get_error_message(lang, transaction)  # noqa
         }
 

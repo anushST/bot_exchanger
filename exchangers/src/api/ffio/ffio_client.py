@@ -135,7 +135,14 @@ class FFIOClient:
         return schemas.OrderData(**response['data'])
 
     async def emergency(self, data: schemas.CreateEmergency) -> bool:
-        return await self._req('emergency', data)
+        response = await self._req('emergency', data)
+        response_code = response.get('code')
+        response_message = response.get('msg')
+        if response_code == 301:
+            if response_message == c.INVALID_ADDRESS_MESSAGE:
+                logger.info('Your address is invalid')
+                raise ex.InvalidAddressError('Your address is invalid')
+        return response
 
 
 ffio_client = FFIOClient(config.FFIO_APIKEY, config.FFIO_SECRET)

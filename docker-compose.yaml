@@ -5,7 +5,7 @@ services:
       - default
     ports:
       - 6379:6379
-  app:
+  bot:
     build: ./bot
     restart: always
     
@@ -13,17 +13,34 @@ services:
       - db
       - redis
     command: [ "python", "main.py"]
-    ports:
-      - 8000:8000
     volumes:
       - ./bot:/usr/src/app
+  currencies:
+    build: ./exchangers
+    restart: always
+    depends_on:
+      - db
+      - redis
+      - bot
+    command: [ "python", "currencies_main.py"]
+    volumes:
+      - ./exchangers:/usr/src/app
+  transactions:
+    build: ./exchangers
+    restart: always
+    depends_on:
+      - db
+      - redis
+      - bot
+    command: [ "python", "transactions_main.py"]
+    volumes:
+      - ./exchangers:/usr/src/app
   celery:
     build: ./celery
     restart: always
     depends_on:
       - db
       - redis
-      - app
     command: ["celery", "--app=celery", "worker", "-l", "INFO"]
     volumes:
       - ./celery:/usr/src/app
@@ -33,7 +50,6 @@ services:
     depends_on:
       - db
       - redis
-      - app
     command: ["celery", "--app=celery", "beat", "-l", "INFO"]
     volumes:
       - ./celery:/usr/src/app
@@ -44,10 +60,11 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=general
     ports:
       - "5400:5432"
     volumes:
-      - postgres_bot_exchanger:/var/lib/postgresql/data
+      - ./db/data:/var/lib/postgresql/data
 
   nginx:
     image: nginx:latest
@@ -58,6 +75,3 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/static:/usr/share/nginx/html:ro
     restart: always
-
-volumes:
-    postgres_bot_exchanger:

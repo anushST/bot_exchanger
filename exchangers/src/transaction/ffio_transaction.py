@@ -12,7 +12,7 @@ from src.api.ffio.ffio_client import ffio_client
 from src.api.ffio.ffio_redis_data import ffio_redis_client
 from src.database import get_session
 from src.models import (
-    Transaction, TransactionStatuses, EmergencyStatuses, EmergencyChoices)
+    Transaction, TransactionStatuses, EmergencyChoices)
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,9 @@ class FFioTransaction:
     async def process(self) -> None:
         logger.info('Handled by ffio')
         try:
-            while True:
+            sleep_time = 5
+            expired_retries = 0
+            while expired_retries < 60*24:
                 try:
                     transaction = await self._get_transaction()
                 except ex.DatabaseError as e:
@@ -45,14 +47,17 @@ class FFioTransaction:
 
                 stop_processing_statuses = (
                     TransactionStatuses.DONE,
-                    TransactionStatuses.ERROR,
-                    TransactionStatuses.EXPIRED,
+                    TransactionStatuses.ERROR
                 )
                 if transaction.status in stop_processing_statuses:
                     logger.info('Stopping processing for transaction '
                                 f'{self.transaction_id} with status '
                                 f'{transaction.status}')
                     break
+
+                if transaction.status == TransactionStatuses.EXPIRED:
+                    sleep_time = 60
+                    expired_retries += 1
 
                 try:
                     if transaction.status == TransactionStatuses.HANDLED:
@@ -64,7 +69,7 @@ class FFioTransaction:
                                  f'{self.transaction_id}: {e}', exc_info=True)
                     break
 
-                await asyncio.sleep(5)
+                await asyncio.sleep(sleep_time)
         except Exception as e:
             logger.critical('Unhandled exception in transaction processing '
                             f'{self.transaction_id}: {e}', exc_info=True)
@@ -103,7 +108,7 @@ class FFioTransaction:
 
             data = schemas.CreateOrder(
                 type=transaction.rate_type,
-                fromCcy='BSC',
+                fromCcy=fromCcy.code,
                 toCcy=toCcy.code,
                 direction=transaction.direction,
                 amount=transaction.amount,

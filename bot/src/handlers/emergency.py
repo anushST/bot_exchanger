@@ -67,7 +67,7 @@ async def handle_exchange_choice(event: CallbackQuery, lang: Language,
             session, transaction, emergency_choise=EmergencyChoices.EXCHANGE)
 
         await event.message.edit_text(
-            text=lang.transaction.emergency_exchange
+            text=lang.transaction.emergency.exchange
         )
         logger.info(f"Transaction {transaction_id} updated successfully.")
     except Exception:
@@ -95,9 +95,12 @@ async def handle_refund_choice(event: CallbackQuery, lang: Language,
         await state.update_data(emergency_transaction_id=transaction_id)
         await state.set_state(ExchangeForm.emergency_address)
 
+        await event.message.edit_text(
+            text=event.message.text
+        )
         await bot.send_message(
             chat_id=event.from_user.id,
-            text=format_message(lang.transaction.emergency.wallet,
+            text=format_message(lang.transaction.emergency.address,
                                 **transaction.to_dict())
         )
         logger.info(f"Transaction {transaction_id} updated successfully.")
@@ -125,16 +128,20 @@ async def emergency_address_handler(message: Message, lang: Language,
         if transaction.final_from_tag_name:
             await state.update_data(emergency_address=address)
             await state.set_state(ExchangeForm.emergency_tag)
+            text = format_message(lang.transaction.emergency.tag,
+                                  **transaction.to_dict())
         else:
             await update_transaction(session, transaction,
                                      emergency_choise=EmergencyChoices.REFUND,
                                      emergency_address=address,
                                      made_emergency_action=True)
-            await bot.send_message(
-                chat_id=message.from_user.id,
-                text='Зпрос принят'
-            )
             await state.clear()
+            text = format_message(lang.transaction.emergency.accepted)
+
+        await bot.send_message(
+            chat_id=message.from_user.id,
+            text=text
+        )
 
     except Exception as e:
         logger.error(f"Error handling emergency address: {e}")
@@ -163,6 +170,10 @@ async def emergency_tag_handler(message: Message, lang: Language,
             emergency_tag_value=tag_value,
             made_emergency_action=True
         )
+        await bot.send_message(
+            chat_id=message.from_user.id,
+            text=format_message(lang.transaction.emergency.accepted)
+        )
 
         await state.clear()
     except Exception as e:
@@ -189,11 +200,12 @@ async def retry_address(event: CallbackQuery, lang: Language, bot: Bot,
         await event.message.edit_text(
             text=event.message.text, reply_markup=None
         )
-        await bot.send_message(
-            chat_id=event.from_user.id,
-            text='Введите заного адресс'
-        )
         await state.update_data(emergency_transaction_id=transaction_id)
         await state.set_state(ExchangeForm.emergency_address)
+        await bot.send_message(
+            chat_id=event.from_user.id,
+            text=format_message(lang.transaction.emergency.address,
+                                **transaction.to_dict())
+        )
     except Exception:
         raise

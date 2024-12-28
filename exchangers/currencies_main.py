@@ -1,11 +1,22 @@
 import asyncio
 import logging
+import logging.handlers
+import os
 
 from src.tasks import ffio_load_tasks
 
+if not os.path.exists('logs'):
+    os.makedirs('logs')
+
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    format='%(asctime)s|%(name)s|%(levelname)s|%(message)s|',
+    handlers=[
+        logging.handlers.RotatingFileHandler(
+            'logs/currencies.log', maxBytes=10*1024*1024, backupCount=5),
+        logging.StreamHandler()
+    ]
+)
 logger = logging.getLogger(__name__)
 
 

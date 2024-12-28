@@ -20,9 +20,15 @@ class Language:
     __BASE_LANGUAGE = "ru"
 
     def __init__(self, lang="ru"):
-        path = str(Path(__file__).parent.absolute())
-        replicas = AttrGenerator(json.load(open(path + f"\\{lang}.json", "r", encoding="utf-8")))
-        base_replicas = AttrGenerator(json.load(open(path + f"\\{self.__BASE_LANGUAGE}.json", "r", encoding="utf-8")))
+        path = Path(__file__).parent.absolute()
+
+        lang_path = path / f'{lang}.json'
+        base_path = path / f'{self.__BASE_LANGUAGE}.json'
+
+        with open(lang_path, 'r', encoding='utf-8') as lang_file:
+            replicas = AttrGenerator(json.load(lang_file))
+        with open(base_path, 'r', encoding='utf-8') as base_file:
+            base_replicas = AttrGenerator(json.load(base_file))
 
         self.__replicas = replicas
         self.__base_replicas = base_replicas

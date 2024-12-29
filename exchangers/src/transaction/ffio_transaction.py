@@ -124,11 +124,11 @@ class FFioTransaction:
                 error_status_code = tc.INVALID_ADDRESS_CODE
             except api_ex.OutOFLimitisError:
                 error_status_code = tc.OUT_OF_LIMITS_CODE
-            except ex.ClientError as e:
+            except Exception as e:
                 logger.error('Error from FFIO client during order creation '
                              f'for transaction {self.transaction_id}: {e}',
                              exc_info=True)
-                raise
+                error_status_code = tc.UNDEFINED_ERROR_CODE
             try:
                 async with get_session() as session:
                     if error_status_code:
@@ -228,11 +228,11 @@ class FFioTransaction:
                             transaction.is_status_showed = False
                             transaction.status_code = tc.INVALID_EMERGENCY_ADDRESS_CODE # noqa
                             is_error = True
-                        except ex.ClientError as e:
+                        except Exception as e:
                             logger.error('Error from FFIO client during order creation ' # noqa
                                          f'for transaction {self.transaction_id}: {e}', # noqa
                                          exc_info=True)
-                            raise
+                            continue
 
                         try:
                             async with get_session() as session:
@@ -268,11 +268,11 @@ class FFioTransaction:
             try:
                 response = await ffio_client.order(data)
                 print(response)
-            except ex.ClientError as e:
+            except Exception as e:
                 logger.error('Error from FFIO client during order retrieval '
                              f'for transaction {self.transaction_id}: {e}',
                              exc_info=True)
-                raise
+                return
 
             if not response:
                 logger.error('Empty response from FFIO client for '

@@ -48,6 +48,8 @@ class TransactionNotifier:
             return lang.transaction.error.incorrect_address
         elif status_code == tc.OUT_OF_LIMITS_CODE:
             return lang.transaction.error.out_of_limits
+        elif status_code == tc.UNDEFINED_ERROR_CODE:
+            return lang.transaction.error.undefined
         return ''
 
     def _get_emergency_message(self, lang, transaction: Transaction) -> str:

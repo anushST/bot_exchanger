@@ -79,10 +79,10 @@ if __name__ == '__main__':
         'token': 'kcjm7QmZknYnppnm26aM1LTRldVp8ATYtJgZrsoZ'
     }
     data = {
-        'id': 'UFAZMB',
-        'token': 'aARonG6Dqr0tz5FqARhZT4Nu62SENasIloaaviT3',
-        'choice': 'REFUND',
-        'address': '0x2ace0222ebc017c81549af01777b450232601fe3'
+        'id': '"BPUA4X"',
+        'token': '"xJqgDYODRL9uKVpccIvUXIQrAB51bS6RNKa0shGU"',
+        'choice': 'EXCHANGE',
+        # 'address': '0x2ace0222ebc017c81549af01777b450232601fe3'
     }
     response = Api.emergency(data)
 

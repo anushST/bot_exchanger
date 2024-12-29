@@ -392,7 +392,7 @@ async def select_amount(message: Message, lang: Language,
         raise Exception('Incorrect direction')
 
     await state.set_state(ExchangeForm.confirm)
-    await state.update_data(amount_value=amount)
+    await state.update_data(amount_value=str(amount))
 
     if state_data.get('tag_name'):
         confirm_text = lang.exchange.confirm_with_tag
@@ -424,7 +424,7 @@ async def confirm(event: CallbackQuery, bot: Bot, user: User, lang: Language,
         to_currency=data.get('currency_to'),
         to_currency_network=data.get('currency_to_network'),
         direction=data.get('exchange_direction'),
-        amount=data.get('amount_value'),
+        amount=Decimal(data.get('amount_value')),
         to_address=data.get('wallet_address'),
         tag_value=data.get('tag_value'),
         tag_name=data.get('tag_name'),

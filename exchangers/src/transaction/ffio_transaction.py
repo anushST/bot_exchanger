@@ -120,6 +120,7 @@ class FFioTransaction:
             error_status_code = None
             try:
                 response = await ffio_client.create(data)
+                logger.info(response)
             except api_ex.InvalidAddressError:
                 error_status_code = tc.INVALID_ADDRESS_CODE
             except api_ex.OutOFLimitisError:
@@ -267,7 +268,7 @@ class FFioTransaction:
 
             try:
                 response = await ffio_client.order(data)
-                print(response)
+                logger.info(response)
             except Exception as e:
                 logger.error('Error from FFIO client during order retrieval '
                              f'for transaction {self.transaction_id}: {e}',

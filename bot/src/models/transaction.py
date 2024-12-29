@@ -135,7 +135,7 @@ class Transaction(BaseModel):
     emergency_address = Column(String(255), nullable=True)
     emergency_tag_name = Column(String(512), nullable=True)
     emergency_tag_value = Column(String(512), nullable=True)
-    made_emergency_action = Column(Boolean(), nullable=True, default=False) # Use for error address or other problems # noqa
+    made_emergency_action = Column(Boolean(), nullable=True, default=True) # Use for error address or other problems # noqa
 
     user = relationship('User', lazy='joined')
 

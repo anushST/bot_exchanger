@@ -110,13 +110,13 @@ class TransactionNotifier:
 
         message = status_messages.get(transaction.status)
         tag_data_from = None
-        if transaction.final_back_tag_name:
+        if transaction.final_from_tag_name:
             tag_data_from = format_message(
                 lang.transaction.tag_data,
                 tag_name=transaction.final_from_tag_name,
                 tag_value=transaction.final_from_tag_value)
         tag_data_to = None
-        if transaction.final_back_tag_name:
+        if transaction.final_to_tag_name:
             tag_data_to = format_message(
                 lang.transaction.tag_data,
                 tag_name=transaction.final_to_tag_name,

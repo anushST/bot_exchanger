@@ -1,0 +1,206 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Создаём загрузчик информации о валютах &mdash; документация CipherSwap 0.0.1</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=ba58aea8"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/translations.js?v=5b699b7f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="../genindex.html" />
+    <link rel="search" title="Поиск" href="../search.html" />
+    <link rel="next" title="Создаём обработчика транзакций" href="create_transaction_processor.html" />
+    <link rel="prev" title="Создание клиента обменника" href="create_client.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CipherSwap
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Обзор системы</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../add_exchanger.html">Как добавить обменник?</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="create_client.html">Создание клиента обменника</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Создаём загрузчик информации о валютах</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id3">Общая идея</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">Место расположения загрузчика</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#redis">Ключи в Redis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id5">Пример объекта загрузчика</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id6">Создание асинхронных задач</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id7">Заключение</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="create_transaction_processor.html">Создаём обработчика транзакций</a></li>
+<li class="toctree-l2"><a class="reference internal" href="create_transaction_errors.html">Обработка ошибок при создании транзакции</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CipherSwap</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../add_exchanger.html">Как добавить обменник?</a></li>
+      <li class="breadcrumb-item active">Создаём загрузчик информации о валютах</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/add_exchanger/create_currency_loader.rst.txt" rel="nofollow"> Просмотреть исходный код страницы</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="id1">
+<h1>Создаём загрузчик информации о валютах<a class="headerlink" href="#id1" title="Ссылка на этот заголовок"></a></h1>
+<p>Данный раздел описывает, как создать объект «загрузчика» (loader), который будет получать и обновлять данные о валютах и их курсах в Redis. Этот объект будет работать совместно с ранее созданным клиентом.</p>
+<nav class="contents local" id="id2">
+<ul class="simple">
+<li><p><a class="reference internal" href="#id3" id="id8">Общая идея</a></p></li>
+<li><p><a class="reference internal" href="#id4" id="id9">Место расположения загрузчика</a></p></li>
+<li><p><a class="reference internal" href="#redis" id="id10">Ключи в Redis</a></p></li>
+<li><p><a class="reference internal" href="#id5" id="id11">Пример объекта загрузчика</a></p></li>
+<li><p><a class="reference internal" href="#id6" id="id12">Создание асинхронных задач</a></p></li>
+<li><p><a class="reference internal" href="#id7" id="id13">Заключение</a></p></li>
+</ul>
+</nav>
+<section id="id3">
+<h2><a class="toc-backref" href="#id8" role="doc-backlink">Общая идея</a><a class="headerlink" href="#id3" title="Ссылка на этот заголовок"></a></h2>
+<p>После создания клиента необходимо реализовать логику, которая будет:</p>
+<ol class="arabic simple">
+<li><p>Загружать актуальные данные о валютах.</p></li>
+<li><p>Сохранять полученную информацию в Redis.</p></li>
+<li><p>Периодически обновлять данные через асинхронные задачи.</p></li>
+</ol>
+</section>
+<section id="id4">
+<h2><a class="toc-backref" href="#id9" role="doc-backlink">Место расположения загрузчика</a><a class="headerlink" href="#id4" title="Ссылка на этот заголовок"></a></h2>
+<p>Файл с реализацией загрузчика должен находиться по пути:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>exchangers/src/loaders/&lt;exchanger_name&gt;_loader.py
+</pre></div>
+</div>
+<p>Здесь <code class="docutils literal notranslate"><span class="pre">&lt;exchanger_name&gt;</span></code> – название конкретного обменника (например, <code class="docutils literal notranslate"><span class="pre">myexchanger_loader.py</span></code>).</p>
+</section>
+<section id="redis">
+<h2><a class="toc-backref" href="#id10" role="doc-backlink">Ключи в Redis</a><a class="headerlink" href="#redis" title="Ссылка на этот заголовок"></a></h2>
+<p>При работе с Redis нужно использовать следующие ключи и структуры данных:</p>
+<ul class="simple">
+<li><p><strong>COINS_KEY = „coins“</strong>
+Это ключ множества (<em>set</em>), куда необходимо добавлять названия (или другие идентификаторы) всех обнаруженных валют.</p></li>
+<li><p><strong>COIN_NETWORKS = „{coin_name}:networks“</strong>
+Это ключ множества (<em>set</em>) для хранения сетей, доступных для каждой монеты. Формат:
+<code class="docutils literal notranslate"><span class="pre">BTC:networks</span></code>, <code class="docutils literal notranslate"><span class="pre">ETH:networks</span></code> и т.д.
+Использование множества позволит не дублировать данные с разных обменников.</p></li>
+<li><p><strong>FULL_COIN_INFO_KEY = „{exchanger}:{coin_name}:{network}:info“</strong>
+Ключ для хранения подробной информации о монете <code class="docutils literal notranslate"><span class="pre">coin_name</span></code> в сети <code class="docutils literal notranslate"><span class="pre">network</span></code>, полученной от обменника <code class="docutils literal notranslate"><span class="pre">exchanger</span></code>.</p></li>
+<li><p><strong>RATE_KEY = „{exchanger}:{type}:{from_coin}:to:{to_coin}:info“</strong>
+Ключ для хранения данных о курсе (или других сведениях) между монетами <code class="docutils literal notranslate"><span class="pre">from_coin</span></code> и <code class="docutils literal notranslate"><span class="pre">to_coin</span></code>. Параметр <code class="docutils literal notranslate"><span class="pre">type</span></code> может указывать на тип операции (например, «fixed»).</p></li>
+</ul>
+<p>Необходимо реализовать методы, которые будут записывать актуальную информацию в вышеперечисленные ключи Redis.</p>
+</section>
+<section id="id5">
+<h2><a class="toc-backref" href="#id11" role="doc-backlink">Пример объекта загрузчика</a><a class="headerlink" href="#id5" title="Ссылка на этот заголовок"></a></h2>
+<p>Смотрите объект загрузчика ffio <code class="docutils literal notranslate"><span class="pre">exchangers/src/loaders/ffio_loader</span></code></p>
+</section>
+<section id="id6">
+<h2><a class="toc-backref" href="#id12" role="doc-backlink">Создание асинхронных задач</a><a class="headerlink" href="#id6" title="Ссылка на этот заголовок"></a></h2>
+<p>После написания загрузчика нужно настроить его периодическое выполнение. Предполагается, что для этого у вас есть модуль или пакет, где определены фоновые задачи.</p>
+<p>В файле <code class="docutils literal notranslate"><span class="pre">exchangers/src/tasks/load_tasks.py</span></code> необходимо доработать метод <code class="docutils literal notranslate"><span class="pre">get_tasks()</span></code> таким образом, чтобы он возвращал набор асинхронных задач для всех методов загрузчика. Эти задачи будут выполняться с интервалом в <strong>10 секунд</strong>.</p>
+<p>Пример кода (упрощённый):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">asyncio</span>
+
+ <span class="kn">from</span> <span class="nn">src.loaders</span> <span class="kn">import</span> <span class="n">LoadFFIODataToRedis</span>
+
+ <span class="n">loader</span> <span class="o">=</span> <span class="n">LoadFFIODataToRedis</span><span class="p">()</span>
+
+
+ <span class="k">def</span> <span class="nf">get_tasks</span><span class="p">():</span>
+     <span class="k">return</span> <span class="p">[</span>
+         <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="n">loader</span><span class="o">.</span><span class="n">load_currencies_and_networks</span><span class="p">()),</span>
+         <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="n">loader</span><span class="o">.</span><span class="n">load_fixed_rates</span><span class="p">()),</span>
+         <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="n">loader</span><span class="o">.</span><span class="n">load_float_rates</span><span class="p">())</span>
+     <span class="p">]</span>
+</pre></div>
+</div>
+</section>
+<section id="id7">
+<h2><a class="toc-backref" href="#id13" role="doc-backlink">Заключение</a><a class="headerlink" href="#id7" title="Ссылка на этот заголовок"></a></h2>
+<p>Таким образом, созданный загрузчик будет:</p>
+<ol class="arabic simple">
+<li><p>Получать данные о валютах и курсах (используя ранее созданного клиента).</p></li>
+<li><p>Сохранять их в Redis по строгой схеме ключей.</p></li>
+<li><p>Обновлять информацию каждые 10 секунд через фоновые асинхронные задачи.</p></li>
+</ol>
+<p>Данный подход позволяет централизованно управлять данными о валютах и обеспечивает высокую скорость доступа к ним через Redis. Используйте предложенный шаблон для интеграции и автоматизации загрузки информации из разных обменников.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Нижняя область">
+        <a href="create_client.html" class="btn btn-neutral float-left" title="Создание клиента обменника" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
+        <a href="create_transaction_processor.html" class="btn btn-neutral float-right" title="Создаём обработчика транзакций" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2024, Anushervon. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

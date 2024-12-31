@@ -1,0 +1,170 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Обзор системы &mdash; документация CipherSwap 0.0.1</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=ba58aea8"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/translations.js?v=5b699b7f"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="genindex.html" />
+    <link rel="search" title="Поиск" href="search.html" />
+    <link rel="next" title="Как добавить обменник?" href="add_exchanger.html" />
+    <link rel="prev" title="CipherSwap documentation" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            CipherSwap
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Обзор системы</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id2">Компоненты системы</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#bot">Bot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#postgresql">PostgreSQL</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#redis">Redis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#service-currencies">Service Currencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#service-transactions">Service Transactions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="add_exchanger.html">Как добавить обменник?</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">CipherSwap</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Обзор системы</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/overview.rst.txt" rel="nofollow"> Просмотреть исходный код страницы</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="id1">
+<h1>Обзор системы<a class="headerlink" href="#id1" title="Ссылка на этот заголовок"></a></h1>
+<p>Система <strong>CipherSwap</strong> построена на надёжных и высокопроизводительных компонентах, обеспечивающих стабильную работу и простоту масштабирования. Благодаря чёткой разделённости задач между сервисами, добавление нового функционала и поддержка системы не вызывают сложностей.</p>
+<section id="id2">
+<h2>Компоненты системы<a class="headerlink" href="#id2" title="Ссылка на этот заголовок"></a></h2>
+<img alt="Схема системы" src="_images/system_schema.png" />
+</section>
+<section id="bot">
+<h2>Bot<a class="headerlink" href="#bot" title="Ссылка на этот заголовок"></a></h2>
+<p>Основной интерфейс для взаимодействия пользователей с системой. Через бота пользователи могут:</p>
+<ul class="simple">
+<li><p>Создавать транзакции.</p></li>
+<li><p>Следить за статусом выполнения операций.</p></li>
+</ul>
+<p>Бот обеспечивает удобный и безопасный способ управления обменными операциями в системе.</p>
+</section>
+<section id="postgresql">
+<h2>PostgreSQL<a class="headerlink" href="#postgresql" title="Ссылка на этот заголовок"></a></h2>
+<p>Главная база данных системы. В ней хранится вся ключевая информация:</p>
+<ul class="simple">
+<li><p>Данные о транзакциях.</p></li>
+<li><p>Информация о пользователях.</p></li>
+<li><p>Прочие данные, необходимые для работы сервиса.</p></li>
+</ul>
+<p>PostgreSQL обеспечивает надёжное хранение данных и высокую производительность при работе с большими объёмами информации.</p>
+</section>
+<section id="redis">
+<h2>Redis<a class="headerlink" href="#redis" title="Ссылка на этот заголовок"></a></h2>
+<p>In-memory база данных, используемая для хранения временной информации:</p>
+<ul class="simple">
+<li><p>Доступные валюты.</p></li>
+<li><p>Актуальные курсы обмена.</p></li>
+</ul>
+<p>Данные в Redis обновляются каждые <strong>10 секунд</strong>, получая актуальную информацию с внешних обменников. Это гарантирует точность курсов и оперативность работы сервиса.</p>
+</section>
+<section id="service-currencies">
+<h2>Service Currencies<a class="headerlink" href="#service-currencies" title="Ссылка на этот заголовок"></a></h2>
+<p>Сервис, отвечающий за загрузку данных о доступных валютах и их курсах в Redis. Его основные задачи:</p>
+<ul class="simple">
+<li><p>Получение актуальных данных от обменников.</p></li>
+<li><p>Обновление информации в базе Redis каждые <strong>10 секунд</strong>.</p></li>
+</ul>
+<p>Благодаря этому компоненту пользователи всегда видят актуальные курсы валют.</p>
+</section>
+<section id="service-transactions">
+<h2>Service Transactions<a class="headerlink" href="#service-transactions" title="Ссылка на этот заголовок"></a></h2>
+<p>Сервис, управляющий обработкой транзакций. Основные функции:</p>
+<ol class="arabic simple">
+<li><p>Поиск транзакций со статусом <strong>NEW</strong> и выбор оптимального обменника для выполнения операции.</p></li>
+<li><p>Обновление статуса транзакции на <strong>HANDLED</strong> и начало её обработки.</p></li>
+</ol>
+<p>Этот сервис обеспечивает бесперебойное выполнение всех транзакций в системе.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Нижняя область">
+        <a href="index.html" class="btn btn-neutral float-left" title="CipherSwap documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
+        <a href="add_exchanger.html" class="btn btn-neutral float-right" title="Как добавить обменник?" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2024, Anushervon. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,226 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Создание клиента обменника &mdash; документация CipherSwap 0.0.1</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=ba58aea8"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/translations.js?v=5b699b7f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="../genindex.html" />
+    <link rel="search" title="Поиск" href="../search.html" />
+    <link rel="next" title="Создаём загрузчик информации о валютах" href="create_currency_loader.html" />
+    <link rel="prev" title="Как добавить обменник?" href="../add_exchanger.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CipherSwap
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Обзор системы</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../add_exchanger.html">Как добавить обменник?</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Создание клиента обменника</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id3">Общая структура проекта</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pydantic">Описание Pydantic-схем</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">Описание исключений</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id5">Реализация клиента</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id6">Принцип работы клиента</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#id7">Заключение</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="create_currency_loader.html">Создаём загрузчик информации о валютах</a></li>
+<li class="toctree-l2"><a class="reference internal" href="create_transaction_processor.html">Создаём обработчика транзакций</a></li>
+<li class="toctree-l2"><a class="reference internal" href="create_transaction_errors.html">Обработка ошибок при создании транзакции</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CipherSwap</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../add_exchanger.html">Как добавить обменник?</a></li>
+      <li class="breadcrumb-item active">Создание клиента обменника</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/add_exchanger/create_client.rst.txt" rel="nofollow"> Просмотреть исходный код страницы</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="id1">
+<h1>Создание клиента обменника<a class="headerlink" href="#id1" title="Ссылка на этот заголовок"></a></h1>
+<p>Данный раздел описывает, как создать клиента для обменника и какие стандарты необходимо соблюдать при его реализации.</p>
+<nav class="contents local" id="id2">
+<ul class="simple">
+<li><p><a class="reference internal" href="#id3" id="id8">Общая структура проекта</a></p></li>
+<li><p><a class="reference internal" href="#pydantic" id="id9">Описание Pydantic-схем</a></p></li>
+<li><p><a class="reference internal" href="#id4" id="id10">Описание исключений</a></p></li>
+<li><p><a class="reference internal" href="#id5" id="id11">Реализация клиента</a></p>
+<ul>
+<li><p><a class="reference internal" href="#id6" id="id12">Принцип работы клиента</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#id7" id="id13">Заключение</a></p></li>
+</ul>
+</nav>
+<section id="id3">
+<h2><a class="toc-backref" href="#id8" role="doc-backlink">Общая структура проекта</a><a class="headerlink" href="#id3" title="Ссылка на этот заголовок"></a></h2>
+<p>В рамках проекта мы будем соблюдать следующую структуру каталогов (пример для обменника с условным именем <code class="docutils literal notranslate"><span class="pre">&lt;exchanger_name&gt;</span></code>):</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/api/
+├── exceptions.py
+├── &lt;exchanger_name&gt;/
+│   ├── schemas/
+│   │   ├── __init__.py
+│   │   └── &lt;exchanger_name&gt;_request.py
+│   │   └── &lt;exchanger_name&gt;_response.py
+│   └── &lt;exchanger_name&gt;_client.py
+├── ...
+└── main.py
+</pre></div>
+</div>
+<ol class="arabic simple">
+<li><p><strong>Клиент</strong> (<cite>&lt;exchanger_name&gt;_client.py</cite>) отвечает за формирование всех необходимых запросов к сервису обменника и предоставление соответствующих методов для работы с ним.</p></li>
+<li><p><strong>Схемы (Pydantic-модели)</strong> располагаются в папке <code class="docutils literal notranslate"><span class="pre">/api/&lt;exchanger_name&gt;/schemas/</span></code>. Они описывают входные и выходные данные методов клиента.</p></li>
+<li><p><strong>Исключения</strong> определяются в файле <code class="docutils literal notranslate"><span class="pre">/api/exceptions.py</span></code>. Все кастомные исключения должны наследоваться от базового класса <cite>ClientError</cite>, находящегося в корне проекта.</p></li>
+</ol>
+</section>
+<section id="pydantic">
+<h2><a class="toc-backref" href="#id9" role="doc-backlink">Описание Pydantic-схем</a><a class="headerlink" href="#pydantic" title="Ссылка на этот заголовок"></a></h2>
+<p>Для фиксации структуры запросов и ответов, а также для валидации данных используются Pydantic-модели. Например, в файлах:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">/api/ffio/schemas/currencies_list.py</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+
+<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">HttpUrl</span>
+
+<span class="k">class</span> <span class="nc">Currency</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">code</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">coin</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">network</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">recv</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">send</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">logo</span><span class="p">:</span> <span class="n">HttpUrl</span>
+    <span class="n">color</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">priority</span><span class="p">:</span> <span class="nb">int</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<p>Таким образом, все методы нашего клиента будут принимать запросы в виде объектов (экземпляров) Pydantic-моделей и возвращать ответы, также оформленные как модели Pydantic.</p>
+</section>
+<section id="id4">
+<h2><a class="toc-backref" href="#id10" role="doc-backlink">Описание исключений</a><a class="headerlink" href="#id4" title="Ссылка на этот заголовок"></a></h2>
+<p>В файле <code class="docutils literal notranslate"><span class="pre">/api/exceptions.py</span></code> необходимо описать собственные исключения, унаследованные от класса <cite>ClientError</cite>, который должен находиться в корне проекта:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">src.exceptions</span> <span class="kn">import</span> <span class="n">ClientError</span>
+
+
+<span class="k">class</span> <span class="nc">InvalidAddressError</span><span class="p">(</span><span class="n">ClientError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raises when address is invalid.&quot;&quot;&quot;</span>
+
+    <span class="k">pass</span>
+</pre></div>
+</div>
+</section>
+<section id="id5">
+<h2><a class="toc-backref" href="#id11" role="doc-backlink">Реализация клиента</a><a class="headerlink" href="#id5" title="Ссылка на этот заголовок"></a></h2>
+<p>Клиент располагается в файле <code class="docutils literal notranslate"><span class="pre">/api/&lt;exchanger_name&gt;/&lt;exchanger_name&gt;_client.py</span></code>.</p>
+<section id="id6">
+<h3><a class="toc-backref" href="#id12" role="doc-backlink">Принцип работы клиента</a><a class="headerlink" href="#id6" title="Ссылка на этот заголовок"></a></h3>
+<ol class="arabic simple">
+<li><p><strong>Инициализация</strong>:
+- При создании экземпляра клиента необходимо указать базовый URL, по которому доступен сервис обменника и соответствующие <cite>api_keys</cite> для авторизации.</p></li>
+<li><p><strong>Вызов методов</strong>: Например для создания транзакции вызывается метод <cite>create</cite>, принимающий <cite>CreateTransaction</cite> и возвращающий <cite>Transaction</cite>.</p></li>
+<li><p><strong>Обработка исключений</strong>: Если сервис обменника вернул код ошибки HTTP, клиент выбрасывает исключение унаследованный от <cite>ClientError</cite>.</p></li>
+</ol>
+</section>
+</section>
+<section id="id7">
+<h2><a class="toc-backref" href="#id13" role="doc-backlink">Заключение</a><a class="headerlink" href="#id7" title="Ссылка на этот заголовок"></a></h2>
+<p>Таким образом, мы создали клиента для обменника, который:</p>
+<ul class="simple">
+<li><p>Соблюдает структуру проекта и размещение файлов в соответствии с соглашениями.</p></li>
+<li><p>Использует Pydantic-модели для валидации входных и выходных данных.</p></li>
+<li><p>Обрабатывает возможные исключения, связанные с сетевыми ошибками и логикой работы обменника.</p></li>
+<li><p>Предоставляет удобные методы для взаимодействия с сервисом.</p></li>
+</ul>
+<p>Используйте данный шаблон, чтобы легко интегрировать других обменников в ваш проект, сохраняя единообразный подход к структуре кода и обработке ошибок.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Нижняя область">
+        <a href="../add_exchanger.html" class="btn btn-neutral float-left" title="Как добавить обменник?" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
+        <a href="create_currency_loader.html" class="btn btn-neutral float-right" title="Создаём загрузчик информации о валютах" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2024, Anushervon. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

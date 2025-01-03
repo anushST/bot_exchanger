@@ -77,6 +77,9 @@ class Transaction(BaseModel):
     to_address = Column(String(255), nullable=False)
     tag_name = Column(String(512), nullable=True)
     tag_value = Column(String(512), nullable=True)
+    refund_address = Column(String(255), nullable=False)
+    refund_tag_name = Column(String(512), nullable=True)
+    refund_tag_value = Column(String(512), nullable=True)
 
     # Transaction data (from endpoint)
     transaction_id = Column(String(255), nullable=True)

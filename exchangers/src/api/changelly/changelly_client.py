@@ -1,47 +1,19 @@
 import asyncio
 import base64
 import binascii
-import hashlib
-import hmac
-import json
 import logging
-from decimal import Decimal
 from typing import Optional
-import time
-from typing import Optional, List, Any
-from pydantic import BaseModel, Field
 
+import aiohttp
 from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 from Crypto.Signature import pkcs1_15
-from requests import post, Response
+from pydantic import BaseModel, Field
 
-import aiohttp
-import xmltodict
-from aiohttp import ClientError, ClientTimeout
-from pydantic import BaseModel
+import schemas
 
 
 logger = logging.getLogger(__name__)
-
-
-class JsonRPCRequest(BaseModel):
-    jsonrpc: str = "2.0"
-    id: int = Field(default_factory=lambda: int(time.time()))
-    method: str
-    params: dict = Field(default_factory=dict)
-
-
-class ErrorModel(BaseModel):
-    code: Optional[int] = None
-    message: Optional[str] = None
-
-
-class JsonRPCResponse(BaseModel):
-    jsonrpc: str
-    id: int
-    result: Optional[Any] = None
-    error: Optional[ErrorModel] = None
 
 
 class GetMinAmountParams(BaseModel):
@@ -69,12 +41,12 @@ class ChangellyClient:
                  timeout: int = 10) -> None:
         self.private_key = private_key
         self.x_api_key = x_api_key
-        self.timeout = ClientTimeout(total=timeout)
+        self.timeout = aiohttp.ClientTimeout(total=timeout)
 
-    def _sign_request(self, body: dict) -> bytes:
+    def _sign_request(self, body: str) -> bytes:
         decoded_private_key = binascii.unhexlify(self.private_key)
         private_key = RSA.import_key(decoded_private_key)
-        message = json.dumps(body).encode('utf-8')
+        message = body.encode('utf-8')
         h = SHA256.new(message)
         signature = pkcs1_15.new(private_key).sign(h)
         return base64.b64encode(signature).decode("utf-8")
@@ -87,98 +59,102 @@ class ChangellyClient:
             'X-Api-Signature': signature,
         }
 
-    async def _request(self, method: str, params: dict = None) -> Any:
+    async def _request(self, method: str, params: BaseModel
+                       ) -> schemas.JsonRPCResponse:
         if params is None:
             params = {}
 
-        rpc_request = JsonRPCRequest(method=method, params=params)
+        rpc_request = schemas.JsonRPCRequest(method=method, params=params)
 
-        headers = self._get_headers(rpc_request.model_dump())
-
+        headers = self._get_headers(rpc_request.model_dump_json(
+            by_alias=True, exclude_none=True))
         async with aiohttp.ClientSession(timeout=self.timeout) as session:
             async with session.post(
                 'https://api.changelly.com/v2/',
                 headers=headers,
-                json=rpc_request.model_dump()
+                data=rpc_request.model_dump_json(by_alias=True, exclude_none=True)
             ) as response:
                 if response.status != 200:
                     text = await response.text()
                     print(text)
-                    raise Exception(f"Changelly API error (HTTP {response.status}): {text}")
-
+                    raise Exception(f"Changelly API error (HTTP {response.status}): {text}") # noqa
                 data = await response.json()
+                response_data = schemas.JsonRPCResponse(**data)
 
-        try:
-            print(data)
-        except Exception as exc:
-            raise Exception(f"Invalid JSON-RPC response format: {exc}")
+        if response_data.error:
+            pass  # ToDO
 
-        # if rpc_response.error:
-        #     raise Exception(
-        #         f"Changelly API returned error: {rpc_response.error.message} "
-        #         f"(code: {rpc_response.error.code})"
-        #     )
+        return response_data
 
-        # return rpc_response.result
+    async def get_currencies_list(self) -> list[str]:
+        response = await self._request(method="getCurrencies")
+        if response.result:
+            return response.result
+        return []
 
-    async def get_currencies(self) -> List[str]:
-        result = await self._request(method="getCurrencies")
-        return result
+    async def get_currencies_full(self) -> list[schemas.Coin]:
+        response = await self._request(method="getCurrenciesFull")
+        coins_data = response.result
+        if coins_data:
+            return [schemas.Coin(**coin) for coin in coins_data]
+        return []
 
-    async def get_min_amount(self, from_currency: str, to_currency: str) -> float:
-        params_model = GetMinAmountParams(
-            from_currency=from_currency,
-            to_currency=to_currency
-        )
-        result = await self._request(
-            method="getMinAmount",
-            params=params_model.model_dump(by_alias=True)
-        )
-        return result
+    async def get_pairs(self) -> list[schemas.CoinPairs]:
+        response = await self._request(method='getPairs')
+        pairs_data = response.result
+        if pairs_data:
+            return [schemas.CoinPairs(**pair) for pair in pairs_data]
+        return []
 
-    async def get_exchange_amount(self, from_currency: str, to_currency: str, amount: float) -> float:
-        params_model = GetExchangeAmountParams(
-            from_currency=from_currency,
-            to_currency=to_currency,
-            amount=amount
-        )
-        result = await self._request(
-            method="getExchangeAmount",
-            params=params_model.model_dump(by_alias=True)
-        )
-        return result
+    async def get_pairs_params(
+            self, params: schemas.PairParams) -> list[schemas.PairParamsData]:
+        response = await self._request(method='getPairsParams', params=params)
+        pairs_info = response.result
+        if pairs_info:
+            return [schemas.PairParamsData(**p) for p in pairs_info]
+        return []
 
-    async def create_transaction(
-        self,
-        from_currency: str,
-        to_currency: str,
-        amount: float,
-        address: str,
-        refund_address: str
-    ):
-        params_model = CreateTransactionParams(
-            from_currency=from_currency,
-            to_currency=to_currency,
-            amount=amount,
-            address=address,
-            refund_address=refund_address
-        )
-        result = await self._request(
-            method="createTransaction",
-            params=params_model.model_dump(by_alias=True)
-        )
-        return result
+    async def get_float_estimate(
+            self, params: schemas.CreateFloatEstimate
+            ) -> schemas.FloatEstimate:
+        response = await self._request(method='getExchangeAmount',
+                                       params=params)
+        estimate = response.result
+        if estimate and isinstance(estimate, list):
+            return [schemas.FloatEstimate(**x) for x in estimate]
+        return []
 
-    async def get_transactions(self, currency: Optional[str] = None, limit: int = 10):
-        params_model = GetTransactionsParams(currency=currency, limit=limit)
-        result = await self._request(
-            method="getTransactions",
-            params=params_model.model_dump(exclude_none=True)
-        )
-        return result
-    
-    async def get_pairs_params(self, currency_from: str, currency_to: str):
-        return await self._request('getPairsParams', params=[{'from': currency_from, 'to': currency_to}])
+    async def get_fixed_estimate(
+            self, params: schemas.CreateFixedEstimate
+            ) -> schemas.FixedEstimate:
+        response = await self._request(method='getFixRateForAmount',
+                                       params=params)
+        estimate = response.result
+        if estimate and isinstance(estimate, list):
+            return [schemas.FixedEstimate(**x) for x in estimate]
+        return []
+
+    async def create_float_transaction(
+            self, params: schemas.CreateFloatTransaction
+            ) -> schemas.FloatTransaction:
+        response = await self._request('createTransaction', params)
+        return schemas.FloatTransaction(**response.result)
+
+    async def create_fixed_transaction(
+            self, params: schemas.CreateFixedTransaction
+            ) -> schemas.FixedTransaction:
+        response = await self._request('createFixTransaction', params)
+        return schemas.FixedTransaction(**response.result)
+
+    async def get_transaction_details(
+            self, params: schemas.CreateTransactionDetails
+            ) -> schemas.TransactionDetails:
+        response = await self._request('getTransactions', params)
+        data = response.result
+        if data and isinstance(data, list):
+            return [schemas.TransactionDetails(**x) for x in data]
+        return []
+
 
 async def main():
     changelly_client = ChangellyClient(
@@ -186,8 +162,20 @@ async def main():
         'WhF6YxeovufHTP7hF4FNJJrcJTUzIvZOjjZ2vMLMA9g=')
 
     try:
-        currencies = await changelly_client.get_currencies()
-        print("Currencies:", currencies)
+        currencies = await changelly_client.create_float_transaction(
+            schemas.CreateFloatTransaction(
+                from_='usdtbsc',
+                to='ton',
+                amount_from='35',
+                address='EQD5mxRgCuRNLxKxeOjG6r14iSroLF5FtomPnet-sgP5xNJb'
+            )
+        )
+        currencies = await changelly_client.get_transaction_details(
+            schemas.CreateTransactionDetails(
+                id_='msnhnmmfd8p59trc'
+            )
+        )
+        print(currencies)
 
         # # 2. Минимальный объём обмена (BTC -> ETH)
         # min_amount = await changelly_client.get_min_amount("btc", "eth")
@@ -211,11 +199,9 @@ async def main():
         # tx_list = await changelly.get_transactions(currency="eth", limit=5)
         # for tx in tx_list:
         #     print(tx.dict())
-
-    except Exception as e:
+    except Exception:
         raise
 
 
 if __name__ == "__main__":
     asyncio.run(main())
-

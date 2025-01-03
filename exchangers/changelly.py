@@ -60,8 +60,8 @@ class CreateTransactionParams(GetExchangeAmountParams):
 
 
 class GetTransactionsParams(BaseModel):
-currency: Optional[str] = None
-limit: int = 10
+    currency: Optional[str] = None
+    limit: int = 10
 
 
 #
@@ -80,13 +80,6 @@ class TransactionData(BaseModel):
     amount: Optional[float]
     status: Optional[str]
     # Дополнительные поля при необходимости
-
-
-class CurrenciesResponse(BaseModel):
-    """
-    Пример ответа для getCurrencies - массив строк (e.g. ["btc","eth","usdt",...]).
-    """
-    __root__: List[str]
 
 
 class TransactionsListResponse(BaseModel):
@@ -190,22 +183,10 @@ class ChangellyAsyncClient:
     # --- Методы Changelly Merchant API (v2) ---
 
     async def get_currencies(self) -> List[str]:
-        """
-        Получение списка поддерживаемых валют (пример).
-        :return: список строк (e.g. ["btc","eth","usdt",...])
-        """
         result = await self._request(method="getCurrencies")
-        # Валидируем ответ как массив строк
-        validated = CurrenciesResponse.model_validate(result)
-        return validated.__root__
+        return result
 
     async def get_min_amount(self, from_currency: str, to_currency: str) -> float:
-        """
-        Получение минимально допустимого объема обмена.
-        :param from_currency: исходная валюта (e.g. 'btc')
-        :param to_currency:   целевая валюта (e.g. 'eth')
-        :return: float
-        """
         params_model = GetMinAmountParams(
             from_currency=from_currency,
             to_currency=to_currency

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import (Boolean, Column, DateTime, DECIMAL, Enum, ForeignKey,
                         Integer, String, Text)
 from sqlalchemy.dialects.postgresql import UUID
@@ -5,8 +7,8 @@ from sqlalchemy.future import select
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import relationship
 
-from src.database import Base
 from src.utils.random import generate_unique_name
+from src.core.db import Base
 
 
 class RateTypes:
@@ -139,6 +141,10 @@ class Transaction(Base):
     emergency_tag_name = Column(String(512), nullable=True)
     emergency_tag_value = Column(String(512), nullable=True)
     made_emergency_action = Column(Boolean(), nullable=True, default=True) # Use for error address or other problems # noqa
+
+    created_on = Column(DateTime, default=datetime.now, nullable=False)
+    updated_on = Column(DateTime, default=datetime.now,
+                        onupdate=datetime.now, nullable=False)
 
     user = relationship('User', lazy='joined')
 

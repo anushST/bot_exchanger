@@ -1,8 +1,13 @@
+from datetime import datetime
+
 from sqlalchemy import (Boolean, Column, DateTime, DECIMAL, Enum, ForeignKey,
                         Integer, String, Text)
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.future import select
+from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import relationship
 
+from src.utils.random import generate_unique_name
 from src.database import Base
 
 
@@ -135,14 +140,31 @@ class Transaction(Base):
     emergency_address = Column(String(255), nullable=True)
     emergency_tag_name = Column(String(512), nullable=True)
     emergency_tag_value = Column(String(512), nullable=True)
-    made_emergency_action = Column(Boolean(), nullable=True, default=True)  # Use for error wallet address or other problems # noqa
+    made_emergency_action = Column(Boolean(), nullable=True, default=True) # Use for error address or other problems # noqa
+
+    created_on = Column(DateTime, default=datetime.now, nullable=False)
+    updated_on = Column(DateTime, default=datetime.now,
+                        onupdate=datetime.now, nullable=False)
 
     user = relationship('User', lazy='joined')
 
-    def set_emergency_statuses(self, statuses: list[Enum]) -> bool:
-        statuses_values = list(map(lambda x: x.value, statuses))
-        self.emergency_statuses = ':'.join(statuses_values)
+    def set_emergency_statuses(self, statuses: list[str]) -> bool:
+        self.emergency_statuses = ':'.join(statuses)
         return True
 
     def get_emergency_statuses(self) -> list[str]:
         return self.emergency_statuses.split(':')
+
+    def to_dict(self):
+        return ({column.key: getattr(self, column.key)
+                 for column in inspect(self).mapper.column_attrs})
+
+    @staticmethod
+    async def create_unique_name(session):
+        while True:
+            name = generate_unique_name(length=6)
+            existing = await session.execute(
+                select(Transaction).where(Transaction.name == name)
+            )
+            if not existing.scalar():
+                return name

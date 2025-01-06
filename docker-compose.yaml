@@ -5,6 +5,17 @@ services:
       - default
     ports:
       - 6379:6379
+
+  backend:
+    build: ./backend
+    restart: always
+    depends_on:
+      - db
+      - redis
+    command: ["uvicorn", "src.main:app"]
+    volumes:
+      - ./backend:/usr/src/app
+
   bot:
     build: ./bot
     restart: always
@@ -15,6 +26,7 @@ services:
     command: [ "python", "main.py"]
     volumes:
       - ./bot:/usr/src/app
+
   currencies:
     build: ./exchangers
     restart: always
@@ -25,6 +37,7 @@ services:
     command: [ "python", "currencies_main.py"]
     volumes:
       - ./exchangers:/usr/src/app
+
   transactions:
     build: ./exchangers
     restart: always
@@ -35,24 +48,7 @@ services:
     command: [ "python", "transactions_main.py"]
     volumes:
       - ./exchangers:/usr/src/app
-  celery:
-    build: ./celery
-    restart: always
-    depends_on:
-      - db
-      - redis
-    command: ["celery", "--app=celery", "worker", "-l", "INFO"]
-    volumes:
-      - ./celery:/usr/src/app
-  celery_beat:
-    build: ./celery
-    restart: always
-    depends_on:
-      - db
-      - redis
-    command: ["celery", "--app=celery", "beat", "-l", "INFO"]
-    volumes:
-      - ./celery:/usr/src/app
+
   db:
     container_name: "db"
     image: postgres:13-alpine

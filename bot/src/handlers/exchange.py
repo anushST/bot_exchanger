@@ -285,6 +285,7 @@ async def select_wallet(message: Message, lang: Language, state: FSMContext):
     data = await state.get_data()
     currency_to = data.get('currency_to')
     network_to = data.get('currency_to_network')
+    rate_type = data.get('rate_type')
 
     if wallet:
         await state.update_data(wallet_address=wallet)
@@ -298,7 +299,12 @@ async def select_wallet(message: Message, lang: Language, state: FSMContext):
                                     tag_name=coin.tag)
             )
             return
-
+        if rate_type == RateTypes.Fixed:
+            await state.set_state(ExchangeForm.refund_address)
+            await message.answer(
+                text=format_message(lang.exchange.refund_address,
+                                    tag_name=coin.tag)
+            )
         await select_amount_message(message, data, state, lang)
     else:
         await message.answer(lang.exchange.empty_wallet_error)
@@ -315,6 +321,37 @@ async def select_tag(message: Message, lang: Language, state: FSMContext):
         await state.update_data(tag_value=tag)
 
     await select_amount_message(message, data, state, lang)
+
+
+@router.message(ExchangeForm.wallet_address)
+async def select_refund_wallet(message: Message, lang: Language, state: FSMContext):
+    wallet = message.text.strip()
+    data = await state.get_data()
+    currency_to = data.get('currency_to')
+    network_to = data.get('currency_to_network')
+    rate_type = data.get('rate_type')
+
+    if wallet:
+        await state.update_data(wallet_address=wallet)
+
+        coin = await frc.get_coin_full_info(currency_to, network_to)
+        if coin.tag is not None:
+            await state.set_state(ExchangeForm.tag)
+            await state.update_data(tag_name=coin.tag)
+            await message.answer(
+                text=format_message(lang.exchange.select_tag,
+                                    tag_name=coin.tag)
+            )
+            return
+        if rate_type == RateTypes.Fixed:
+            await state.set_state(ExchangeForm.refund_address)
+            await message.answer(
+                text=format_message(lang.exchange.refund_address,
+                                    tag_name=coin.tag)
+            )
+        await select_amount_message(message, data, state, lang)
+    else:
+        await message.answer(lang.exchange.empty_wallet_error)
 
 
 @router.message(ExchangeForm.amount_currency)

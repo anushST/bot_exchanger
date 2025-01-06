@@ -1,14 +1,13 @@
 import uuid
-from contextlib import asynccontextmanager
 from datetime import datetime
 
 from sqlalchemy import Column, DateTime
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import text
 
-from src.config import config
+from src.core.config import settings
 
 
 class PreBase:
@@ -20,9 +19,15 @@ class PreBase:
 
 
 Base = declarative_base(cls=PreBase)
-engine = create_async_engine(config.DATABASE_URL)
-session = sessionmaker(autocommit=False, autoflush=False, bind=engine,
-                       class_=AsyncSession)
+
+engine = create_async_engine(settings.database_url)
+
+AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession)
+
+
+async def get_async_session():
+    async with AsyncSessionLocal() as async_session:
+        yield async_session
 
 
 async def set_isolation_level(isolation_level: str = 'SERIALIZABLE'):
@@ -38,9 +43,3 @@ async def set_isolation_level(isolation_level: str = 'SERIALIZABLE'):
             'SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION '
             f'LEVEL {isolation_level}'))
         await connection.commit()
-
-
-@asynccontextmanager
-async def get_session():
-    async with session() as ses:
-        yield ses

@@ -10,12 +10,17 @@ from sqlalchemy.sql import text
 
 from src.config import config
 
-Base = declarative_base()
-engine = create_async_engine(
-    config.DATABASE_URL,
-    isolation_level='SERIALIZABLE',
-)
-engine.connect()
+
+class PreBase:
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4,
+                unique=True, nullable=False)
+    created_on = Column(DateTime, default=datetime.now, nullable=False)
+    updated_on = Column(DateTime, default=datetime.now,
+                        onupdate=datetime.now, nullable=False)
+
+
+Base = declarative_base(cls=PreBase)
+engine = create_async_engine(config.DATABASE_URL)
 session = sessionmaker(autocommit=False, autoflush=False, bind=engine,
                        class_=AsyncSession)
 
@@ -39,12 +44,3 @@ async def set_isolation_level(isolation_level: str = 'SERIALIZABLE'):
 async def get_session():
     async with session() as ses:
         yield ses
-
-
-class BaseModel(Base):
-    __abstract__ = True
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4,
-                unique=True, nullable=False)
-    created_on = Column(DateTime, default=datetime.now, nullable=False)
-    updated_on = Column(DateTime, default=datetime.now,
-                        onupdate=datetime.now, nullable=False)

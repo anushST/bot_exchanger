@@ -3,7 +3,7 @@ from sqlalchemy import (Boolean, Column, DateTime, DECIMAL, Enum, ForeignKey,
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from src.database import BaseModel
+from src.database import Base
 
 
 class RateTypes:
@@ -48,7 +48,7 @@ class TransactionStatuses:
                EXPIRED, EMERGENCY, ERROR,)
 
 
-class Transaction(BaseModel):
+class Transaction(Base):
     __tablename__ = 'transaction'
     # Transaction meta-data
     name = Column(String(6), unique=True, nullable=False)

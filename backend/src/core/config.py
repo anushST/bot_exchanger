@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    app_title: str = 'Бронирование переговорок'
+    app_title: str = 'CipherSwap'
     app_description: str = 'Описание проекта'
     secret: str = 'SECRET'
     DATABASE_URL: str

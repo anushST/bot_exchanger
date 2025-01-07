@@ -4,12 +4,6 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from src.models import TransactionStatuses
-
-
-class TransactionStatusesEnum(Enum, TransactionStatuses):
-    pass
-
 
 class CreateTransaction(BaseModel):
     user_id: int
@@ -27,4 +21,4 @@ class CreateTransaction(BaseModel):
 
 class Transaction(BaseModel):
     name: str
-    status: TransactionStatuses
+    status: str

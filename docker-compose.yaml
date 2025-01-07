@@ -12,7 +12,7 @@ services:
     depends_on:
       - db
       - redis
-    command: ["uvicorn", "src.main:app"]
+    command: ["python", "main.py"]
     volumes:
       - ./backend:/usr/src/app
 

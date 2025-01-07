@@ -1,0 +1,19 @@
+from fastapi import APIRouter
+
+from src.api.ffio.ffio_redis_data import ffio_redis_client
+from src.core.db import get_async_session
+from src.models import Transaction
+
+router = APIRouter()
+
+
+@router.get('/')
+async def get_currencies():
+    return await ffio_redis_client.get_coins()
+
+
+@router.get('/info')
+async def get_currency_info(coin: str, network: str):
+    return await ffio_redis_client.get_coin_full_info(
+        coin, network
+    )

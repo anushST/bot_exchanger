@@ -10,7 +10,7 @@ router = APIRouter()
 
 @router.get('/{transaction_id}', response_model=schemas.Transaction)
 async def get_transaction(
-        transaction_id: int,
+        transaction_id: str,
         session: AsyncSession = Depends(get_async_session)):
     try:
         transaction = await session.get(Transaction, transaction_id)

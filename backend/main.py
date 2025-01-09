@@ -5,10 +5,12 @@ import os
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.routers import main_router
 from src.core.db import engine as db, set_isolation_level
 from src.core.config import settings
+from src.middlewares import TelegramAuthMiddleware
 from src.models import init_models
 
 if not os.path.exists('logs'):
@@ -38,6 +40,15 @@ async def init_db():
 app = FastAPI(title=settings.app_title)
 
 app.include_router(main_router)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],  # Разрешаем все источники
+    allow_credentials=True,
+    allow_methods=['*'],  # Разрешаем все методы (GET, POST, PUT, DELETE и т. д.)
+    allow_headers=['*'],  # Разрешаем все заголовки
+)
+app.add_middleware(TelegramAuthMiddleware)
 
 
 async def main():

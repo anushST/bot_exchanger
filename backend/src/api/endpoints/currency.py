@@ -17,3 +17,8 @@ async def get_currency_info(coin: str, network: str):
     return await ffio_redis_client.get_coin_full_info(
         coin, network
     )
+
+
+@router.get('/networks')
+async def get_currency_networks(coin: str):
+    return await ffio_redis_client.get_networks(coin)

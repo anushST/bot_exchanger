@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -12,13 +13,13 @@ class Coin(BaseModel):
     enabled_to: bool = Field(..., alias="enabledTo")
     fix_rate_enabled: bool = Field(..., alias="fixRateEnabled")
     payin_confirmations: int = Field(..., alias="payinConfirmations")
-    address_url: str = Field(..., alias="addressUrl")
-    transaction_url: str = Field(..., alias="transactionUrl")
+    address_url: Optional[str] = Field(None, alias="addressUrl")
+    transaction_url: Optional[str] = Field(None, alias="transactionUrl")
     image: str
     fixed_time: int = Field(..., alias="fixedTime")
-    contract_address: str = Field(..., alias="contractAddress")
-    protocol: str
-    blockchain: str
+    contract_address: Optional[str] = Field(None, alias="contractAddress")
+    coin: str
+    network: str
     blockchain_precision: int = Field(..., alias="blockchainPrecision")
 
 

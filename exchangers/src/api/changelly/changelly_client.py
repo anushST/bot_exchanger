@@ -10,7 +10,10 @@ from Crypto.PublicKey import RSA
 from Crypto.Signature import pkcs1_15
 from pydantic import BaseModel, Field
 
-import schemas
+from . import schemas
+from src.api.ffio.schemas import OrderType
+from src.transaction.schemas import CreateBestPrice, BestPrice
+from .changelly_redis_data import changelly_redis_client
 
 
 logger = logging.getLogger(__name__)
@@ -59,7 +62,7 @@ class ChangellyClient:
             'X-Api-Signature': signature,
         }
 
-    async def _request(self, method: str, params: BaseModel
+    async def _request(self, method: str, params: BaseModel = None
                        ) -> schemas.JsonRPCResponse:
         if params is None:
             params = {}
@@ -119,6 +122,7 @@ class ChangellyClient:
             ) -> schemas.FloatEstimate:
         response = await self._request(method='getExchangeAmount',
                                        params=params)
+        print(response)
         estimate = response.result
         if estimate and isinstance(estimate, list):
             return [schemas.FloatEstimate(**x) for x in estimate]
@@ -130,14 +134,39 @@ class ChangellyClient:
         response = await self._request(method='getFixRateForAmount',
                                        params=params)
         estimate = response.result
+        print(estimate)
         if estimate and isinstance(estimate, list):
             return [schemas.FixedEstimate(**x) for x in estimate]
         return []
+
+    async def get_rate(self, data: CreateBestPrice):
+        from_ccy = await changelly_redis_client.get_coin_full_info(
+            data.from_currency, data.from_network
+        )
+        to_ccy = await changelly_redis_client.get_coin_full_info(
+            data.to_currency, data.to_network
+        )
+        if data.type == OrderType.fixed:
+            result = await self.get_fixed_estimate(schemas.CreateFixedEstimate(
+                from_coin=from_ccy.code, to=to_ccy.code, amountFrom=data.amount
+            ))
+        elif data.type == OrderType.float:
+            result = await self.get_float_estimate(schemas.CreateFloatEstimate(
+                from_coin=from_ccy.code, to=to_ccy.code, amountFrom=data.amount
+            ))
+
+        return BestPrice(
+            exchanger='changelly',
+            from_amount=result[0].amount_from,
+            to_amount=result[0].amount_to,
+            **data.model_dump()
+        )
 
     async def create_float_transaction(
             self, params: schemas.CreateFloatTransaction
             ) -> schemas.FloatTransaction:
         response = await self._request('createTransaction', params)
+        print(response)
         return schemas.FloatTransaction(**response.result)
 
     async def create_fixed_transaction(
@@ -155,12 +184,11 @@ class ChangellyClient:
             return [schemas.TransactionDetails(**x) for x in data]
         return []
 
+changelly_client = ChangellyClient(
+        '308204be020100300d06092a864886f70d0101010500048204a8308204a40201000282010100b1bc33122b1931b6b76ce76f7171c8db121598fbd95747e7c9ed0a0ab1c9b328d2c80bd0874ecc8de73dcc355296f54dc46f2c8a202798bbaa502a1e2a038e44ed2c369f670e9b7f642eb85d0f65b610e7a4b57cabedc69754e0c444c0411b7d49db3fb3c0e7b7d4cff6225a374d3124a1c48704772a2e0a80dd983bd595d0e326307013f0303dbc772ff47ba4325fe35c7f5f10aa6d2d8eaae45034dd2f025159a2aa7d8dddf6a5cc8c86b8a33cc27f606807692cdb5f696be4c65e317cfa4309e7e42b3649a87ea219624348bdb321083457ddd1d2cde5fa34e8b6a8b0873f7027f32262d2d8bfe98c8f5820ef42d4d3dbd7c4b9956952c7aaf288f2d0bd670203010001028201003c0ddb33c85c3af0020a4a28ddac14b1f0ea5b46bda940229198064c96c610433af55d0898af876e6b33f64c0e1bf3c6d318bd73ee6972b1f65a1fe11151224127e2489293bfdbcaaf8f19bc57f7860d3037f71aa8fd2e9cf390fec03c35c39411e08325b9889214d62fd46ba743edd6f2d1f4cd0d76b317d973067d312dede64223afc01506d0eb742a2d1d1dc2a989364709b4b41ed7c3de7df67967ca449d018064858527210f9d860ec3fbf09ab44f2ea38cd4b921acdba68f83321765e9b075e1d7a8cbfc1d53ab6087660849d0532fe819a1f06167fb72f5d0799ca48c2d1f8f277946082fbfa785ec16b772e254af30696cf7ecd5019773d6fcfab80102818100e14bcc0db1bd5face75b41e5f9baf0ed28a237220affc32e64a4d109cb18941e394d559ac00d9745da57e081b092a98b31d517a7ac35e5914de61a71f3182ad4d880884fd97b1e829b912d7ea3a0fd2145cf72abcba8c6f1172f26d6dbe194d1aa00a6af20360b4a244c0687bb69af5dd3af18b208abd616fa85b89ffd9e3da902818100c9f514d02d5a0336b788d83c03a00af0a7d67f49a75714e358b955d5a2529670774cc0d739522682bcaef544245e5e138341b3e0aac03908fafee99723735498d8fe15694c1e05114cb86f5f3477e749699af61a3b51f137e1f89c19b3dee0331e6f1c46c50bc4b3171c373335c222b452d6dc624248b8d17610a1b261c16c8f02818100be7b8970e2a00c6e71c59477cea721e04204b4bc91b420dfeeb3f31166a7c743ae8b161f9ad562daea7a7614f0a76fb582527a878770a242322ca49b473f5da74bcd9072829c37f591763392e8e1ca6301551dcce68a3279d0724b5249e1f62336ab0a42f2e6feb096f3b869b628eade5785a9498d4f4bd96dc2f5903fac34d102818100c9bea5f80015f737e5c8321a6194b2d90d10dd3efa87a73a251b9f7f3614426c3f00d1732eb3bdfcc3f812d2eb71c990bc8219eac92814d1bfca7e16993750bf0fa5624639df933860e7ad79f1b405bbf45ef491e7c847ab87750e9b2e6fea8fa64b6077e1c78bcb4bbec7f5c43216f103ffd74fe0df3ca121cc237b4ae42a490281801f88aba9a0baffbb43ada04e7a99fc9209650aecce51ade69acc4b5cede94a950c6a7dac5bc25304bd9920644c6230867a136f4e04c99528f22f6678631768ea1ef3538ecd8fa27aeddd31395983ded7c20f494653f47bc88168474001d8f23bd61cfce4eb53aa7d81c7eca927936be413684dbff2a9ec9ad8de46d3dc8438cb',
+        'MwLlkpKuXnXLjPT4x+7J7rlPv5O8Rg0IXxv25A1IRMs=')
 
 async def main():
-    changelly_client = ChangellyClient(
-        '308204bc020100300d06092a864886f70d0101010500048204a6308204a20201000282010100bdde7cb36e92b8d10d9ef3f036746988b1b384e6ac05df9173316de50519275410fad574eae2690388b41b2f7e018cd3815f1d99e4c2f7f56171c20e78580254fe43f4d2d1cee2d52272e23054eb829b7f5a749a775a784cd48983e22dddbf70d71bc6914621e3c56b2d682585ae368044f3c17ad5b901db4bd7e8b18aea696b36e3ebcc2424c02f6ba72bc1f304ee0dee67c3da31a7544f2a2d413babfe4c613ef604358ee64a7e748b1bc9636c4668693b89d03a1d7531ecf991572112e37a4f8f19b3e4829f3789d9423f0fa35d865e57838da7da98a628bd3754c05596af1b5487a371a75d0ffcf1a5c957b674098c9aa6fa7b7dcf8ae4670a491b3bcc6d0203010001028201003883a7d474be215ac05626bfc245a63ff4bcbd7b378acbffec2cb34c2ed74cd87df15b65e0a021a7d6a1dd51a68ce990eefa13c281cff2a44c2be31a118208b7a9b32a8531c405ca70e58723e1b2f3fe3acafed8175c8b603b06ef857c277bdb277bf1ffbdc34a9bb18a236cbfbc9a2655dfc4203ecb419d3796fd81131b30e31ff52aeee11a321b1767fb491ca0a4d49aa43f19fab2a6dfd198a14aadccc43c6fe869d7b91b70253ac6be3205a330216accacc6c3db86dfb4e7127ecdbdf81049bdaebee8016debc31dfab6299709460624f3332c1b04a6674dfa21d4438aadcebe09b7b55b7abafba3896a6c38bab550be86127d54375cee8573f2dd34141502818100f1dd06898de984245dea660cb779ed458e1cbbbede85db6c1eb448230cfcd3bd4aa6bdf05bed3ca58ee9b5e050807a9217f0a300196efef8501b514b1c7dc71c9fb0c8d29837fa8f8ba21106deaeb6a3f7216ab69b040cdc492f6fa61103cad158838958751a69765e8157e8cce487d8aaecfc2829a8d29c67d5cf7e8f6f028302818100c8f77a1475113c93d54777264431cf4dcbe85f635cba96f25733ccf1d7098752adbbc50a9dd27e738182fdc7528ddc7efea719878f3e3bb44ea7b0cae204a661e39a03cfa9ce20e175d6f261e17014846b9ba7bd7b486bfc1c4f843432b502be7ecca15b0c77886a1808bef9d60400b72b17e4286e4642cc93b64c1f8827024f028180396d7aa4e49e42b303dda91771e530726878e8173cecd999c57c96f84398308a6c9444db32689512d66925b73a46175462fccf2731e2ca0599b7b2c8bbde1d8ded58e38625807d2ce241bbfb3e9a8b61494794f800bca87511a782c2129e2ce52238313f60a6c1cdca48b9dfdbee9356ddd6e15483f7c2f24231615032ac70130281806fe07571d60a1673261476dc32b297f9733e957bb72f98c0a89309d0c82961d0412f7aee0216209724ce4b811f1022640057fdfa5d6003d4c8c4c9c2e8383677e040e9463dfda6885d15a031a552c3d9441e8f2f08e6b456d15be2f93c1150c9c3c51f3e949e26af095a3516d871ba043e553a8ad778fdceed9c5a9c632b743902818006bc41220c7afe7609b8bf28f9bc98595a0fd34dd18d0bf6715f35da854ce5c5804a82908fa7b6151c1f8c597138fe8e66d6912104982544cf82a4ca54bd533512bd62ea245084887760b9907c3650c20b73639ba771bf14573e024fd4e93ff34da2272754419a88490c2c07ffdb80bf507cef118d85680e9f97985e80d9d676',
-        'WhF6YxeovufHTP7hF4FNJJrcJTUzIvZOjjZ2vMLMA9g=')
-
     try:
         currencies = await changelly_client.create_float_transaction(
             schemas.CreateFloatTransaction(

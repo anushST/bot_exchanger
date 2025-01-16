@@ -10,7 +10,7 @@ class Currency(BaseModel):
     name: str
     recv: bool
     send: bool
-    tag: Optional[str]
-    logo: HttpUrl
-    color: str
-    priority: int
+    tag: Optional[str] = None
+    logo: Optional[HttpUrl] = None
+    color: Optional[str] = None
+    priority: Optional[int] = None

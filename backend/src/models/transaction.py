@@ -79,7 +79,7 @@ class Transaction(Base):
     to_address = Column(String(255), nullable=False)
     tag_name = Column(String(512), nullable=True)
     tag_value = Column(String(512), nullable=True)
-    refund_address = Column(String(255), nullable=False)
+    refund_address = Column(String(255), nullable=True)
     refund_tag_name = Column(String(512), nullable=True)
     refund_tag_value = Column(String(512), nullable=True)
 

@@ -19,7 +19,7 @@ async def get_transaction(
                                 detail='Transaction not found')
 
         return schemas.Transaction(
-            id=transaction.id,
+            id='1fd3c0b8-07a4-40ad-a3d0-062b6a8aca0b',
             name=transaction.name,
             rate_type=transaction.rate_type,
             from_currency=transaction.from_currency,
@@ -44,7 +44,7 @@ async def create_transaction(
 ):
     try:
         transaction = Transaction(
-            user_id=data.user_id,
+            user_id='1fd3c0b8-07a4-40ad-a3d0-062b6a8aca0b',
             name=await Transaction.create_unique_name(session),
             rate_type=data.rate_type,
             from_currency=data.currency_from,

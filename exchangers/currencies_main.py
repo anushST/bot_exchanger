@@ -3,7 +3,7 @@ import logging
 import logging.handlers
 import os
 
-from src.tasks import ffio_load_tasks
+from src.tasks import load_tasks
 
 if not os.path.exists('logs'):
     os.makedirs('logs')
@@ -30,7 +30,7 @@ async def run_task(task, task_id):
 async def main():
     while True:
         try:
-            tasks = ffio_load_tasks.get_tasks()
+            tasks = load_tasks.get_tasks()
 
             if not tasks:
                 logger.info('No tasks to execute.')

@@ -5,7 +5,7 @@ from redis.asyncio import StrictRedis
 
 from src.config import config
 from src.api.ffio import schemas
-from src.api.ffio.ffio_client import FFIOClient
+from src.api.ffio.ffio_client import ffio_client
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +24,7 @@ class LoadFFIODataToRedis:
             db=config.REDIS_DATABASE,
             decode_responses=True
         )
-        self.api_client = FFIOClient(
-            key=config.FFIO_APIKEY,
-            secret=config.FFIO_SECRET
-        )
+        self.api_client = ffio_client
 
     async def _remove_currencies_ununiqueness(
             self, coins) -> list[schemas.Currency]:

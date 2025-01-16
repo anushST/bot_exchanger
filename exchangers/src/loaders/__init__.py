@@ -1,1 +1,2 @@
 from .ffio_loader import LoadFFIODataToRedis
+from .changelly_loader import LoadChangellyDataToRedis

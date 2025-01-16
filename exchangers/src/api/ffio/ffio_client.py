@@ -12,8 +12,10 @@ from aiohttp import ClientError, ClientTimeout
 from pydantic import BaseModel
 
 from . import schemas, constants as c
+from src.api.ffio.ffio_redis_data import ffio_redis_client
 from src.api import exceptions as ex
 from src.config import config
+from src.transaction.schemas import CreateBestPrice, BestPrice
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +113,33 @@ class FFIOClient:
     async def ccies(self) -> list[schemas.Currency]:
         currencies = await self._req('ccies')
         return [schemas.Currency(**cur) for cur in currencies['data']]
+
+    async def price(self, data: schemas.CreatePrice) -> schemas.PriceData:
+        price = await self._req('price', data)
+        print(price['data'])
+        return price['data']
+
+    async def get_rate(self, data: CreateBestPrice):
+        from_currency = await ffio_redis_client.get_coin_full_info(
+            data.from_currency, data.from_network
+        )
+        to_currency = await ffio_redis_client.get_coin_full_info(
+            data.to_currency, data.to_network
+        )
+        if not from_currency or not to_currency:
+            return None
+        result = await self.price(schemas.CreatePrice(
+            type=data.type,
+            fromCcy=from_currency.code,
+            toCcy=to_currency.code,
+            direction=data.direction,
+            amount=data.amount
+        ))
+        return BestPrice(
+            exchanger='ffio',
+            from_amount=result.get('from').get('amount'),
+            to_amount=result.get('to').get('amount'),
+            **data.model_dump())
 
     async def create(self, data: schemas.CreateOrder) -> schemas.OrderData:
         response = await self._req('create', data)

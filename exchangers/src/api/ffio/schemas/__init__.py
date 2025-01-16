@@ -4,4 +4,4 @@ from .emergency import CreateEmergency, EmergencyChoice, EmergencyStatus
 from .order import (
     CreateOrder, CreateOrderDetails, Direction,
     OrderData, OrderStatus, OrderType)
-from .rates import RatesSchema
+from .rates import RatesSchema, CreatePrice, PriceData

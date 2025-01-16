@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import Column, BigInteger, DateTime, String
 
 from src.database import Base
+from src.lang import Language
 
 
 class User(Base):
@@ -14,3 +15,6 @@ class User(Base):
     created_on = Column(DateTime, default=datetime.now, nullable=False)
     updated_on = Column(DateTime, default=datetime.now,
                         onupdate=datetime.now, nullable=False)
+
+    def get_lang(self):
+        return Language(self.language)

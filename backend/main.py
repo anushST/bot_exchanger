@@ -48,7 +48,7 @@ app.add_middleware(
     allow_methods=['*'],  # Разрешаем все методы (GET, POST, PUT, DELETE и т. д.)
     allow_headers=['*'],  # Разрешаем все заголовки
 )
-app.add_middleware(TelegramAuthMiddleware)
+# app.add_middleware(TelegramAuthMiddleware)
 
 
 async def main():

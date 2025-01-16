@@ -16,17 +16,6 @@ services:
     volumes:
       - ./backend:/usr/src/app
 
-  bot:
-    build: ./bot
-    restart: always
-    
-    depends_on:
-      - db
-      - redis
-    command: [ "python", "main.py"]
-    volumes:
-      - ./bot:/usr/src/app
-
   currencies:
     build: ./exchangers
     restart: always

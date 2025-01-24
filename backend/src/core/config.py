@@ -9,9 +9,11 @@ class Settings(BaseSettings):
     secret: str = 'SECRET'
     DATABASE_URL: str
     TOKEN: str
+    ADMIN_TOKEN: str
     TIMEZONE: Optional[str] = 'Europe/Moscow'
     FFIO_APIKEY: str
     FFIO_SECRET: str
+    DOMAIN: str
 
     REDIS_HOST: Optional[str] = 'localhost'
     REDIS_PORT: Optional[str] = '6379'

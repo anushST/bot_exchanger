@@ -1,4 +1,5 @@
 import uuid
+from contextlib import asynccontextmanager
 
 from sqlalchemy import Column
 from sqlalchemy.dialects.postgresql import UUID
@@ -22,6 +23,11 @@ AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession)
 
 
 async def get_async_session():
+    async with AsyncSessionLocal() as async_session:
+        yield async_session
+
+@asynccontextmanager
+async def get_async_session_generator():
     async with AsyncSessionLocal() as async_session:
         yield async_session
 

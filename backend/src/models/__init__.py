@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from .transaction import (DirectionTypes,  EmergencyChoices, EmergencyStatuses,
                           RateTypes, Transaction, TransactionStatuses)
 from .user import User
+from .marketing_link import MarketingLink
 from src.core.db import Base
 
 

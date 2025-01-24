@@ -65,6 +65,7 @@ class Transaction(Base):
     msg = Column(Text(), nullable=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey('user.id'),
                      nullable=False)
+    exchanger = Column(String(255), nullable=True)
 
     # Data to create order
     rate_type = Column(Enum(*RateTypes.CHOICES, name='transaction_types'),
@@ -142,8 +143,8 @@ class Transaction(Base):
     emergency_tag_value = Column(String(512), nullable=True)
     made_emergency_action = Column(Boolean(), nullable=True, default=True) # Use for error address or other problems # noqa
 
-    created_on = Column(DateTime, default=datetime.now, nullable=False)
-    updated_on = Column(DateTime, default=datetime.now,
+    created_at = Column(DateTime, default=datetime.now, nullable=False)
+    updated_at = Column(DateTime, default=datetime.now,
                         onupdate=datetime.now, nullable=False)
 
     user = relationship('User', lazy='joined')

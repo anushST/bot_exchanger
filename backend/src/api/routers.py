@@ -13,3 +13,6 @@ main_router.include_router(
 main_router.include_router(
     endpoints.currency_router, prefix='/currencies', tags=['Currencies']
 )
+main_router.include_router(
+    endpoints.user_router, prefix='/users', tags=['Users']
+)

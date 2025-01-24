@@ -7,31 +7,30 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy.future import select
 
 from src.core.config import settings
-from src.core.db import get_async_session
+from src.core.db import get_async_session_generator
 from src.models import User
+
+import logging
+from init_data_py import InitData
+
+logger = logging.getLogger(__name__)
 
 
 def verify_init_data(init_data: str) -> dict:
     if not init_data:
         raise HTTPException(status_code=400, detail="Missing initData")
 
-    params = dict(item.split('=') for item in init_data.split('&'))
-    received_hash = params.pop('hash', None)
+    in_data = InitData.parse(init_data)
 
-    if not received_hash:
-        raise HTTPException(status_code=400, detail="Invalid initData format")
-
-    data_check_string = '\n'.join(
-        f"{key}={value}" for key, value in sorted(params.items()))
-    secret_key = hashlib.sha256(settings.TOKEN.encode()).digest()
-    calculated_hash = hmac.new(secret_key, data_check_string.encode(),
-                               hashlib.sha256).hexdigest()
-
-    if not hmac.compare_digest(received_hash, calculated_hash):
+    try:
+        if not in_data.validate(settings.TOKEN, lifetime=3600):
+            raise HTTPException(status_code=403,
+                                detail="Invalid initData signature")
+    except Exception:
         raise HTTPException(status_code=403,
                             detail="Invalid initData signature")
 
-    return params
+    return in_data.to_dict()
 
 
 class TelegramAuthMiddleware(BaseHTTPMiddleware):
@@ -49,9 +48,9 @@ class TelegramAuthMiddleware(BaseHTTPMiddleware):
                 status_code=e.status_code,
                 content={'error': "Missing auth header"})
 
-        user_id = user_data.get('id')
+        user_id = user_data['user'].get('id')
 
-        async with get_async_session() as session:
+        async with get_async_session_generator() as session:
             response = await session.execute(
                 select(User).where(User.tg_id == user_id)
             )
@@ -60,7 +59,7 @@ class TelegramAuthMiddleware(BaseHTTPMiddleware):
             if not user:
                 user = User(
                     tg_id=user_id,
-                    tg_name='hi'
+                    tg_name=user_data['user']['first_name']
                 )
                 session.add(user)
                 await session.commit()

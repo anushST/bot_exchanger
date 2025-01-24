@@ -37,11 +37,12 @@ async def get_transaction(
             status_code=500, detail=f'Error retrieving transaction: {str(e)}')
 
 
-@router.post('/', response_model=schemas.Transaction)
+@router.post('/' ) #, response_model=schemas.Transaction)
 async def create_transaction(
     data: schemas.CreateTransaction,
     session: AsyncSession = Depends(get_async_session)
 ):
+    return {'message': 'Transaction created'}
     try:
         transaction = Transaction(
             user_id='1fd3c0b8-07a4-40ad-a3d0-062b6a8aca0b',

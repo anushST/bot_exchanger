@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import Request, HTTPException
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -7,7 +9,6 @@ from src.core.config import settings
 from src.core.db import get_async_session_generator
 from src.models import User
 
-import logging
 from init_data_py import InitData
 
 logger = logging.getLogger(__name__)

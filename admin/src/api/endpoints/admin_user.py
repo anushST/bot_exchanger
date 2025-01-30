@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession as Session
-from sqlalchemy import select
 from typing import List
 
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession as Session
+
+from .schemas import AdminUserCreate, AdminUserUpdate, AdminUserResponse
 from src.core.db import get_async_session
 from src.models import AdminUser
-from .schemas import AdminUserCreate, AdminUserUpdate, AdminUserResponse
 
 router = APIRouter()
 

@@ -5,7 +5,6 @@ from pydantic import BaseModel, ConfigDict
 
 
 class MarketingLinkCreate(BaseModel):
-    user_id: int
     name: str
 
 
@@ -16,7 +15,6 @@ class MarketingLinkUpdate(BaseModel):
 class MarketingLinkOut(BaseModel):
     id: UUID
     name: str
-    user_id: int
     new_users: int
     total_clicks: int
     link: str

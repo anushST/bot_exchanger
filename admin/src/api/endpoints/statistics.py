@@ -1,16 +1,17 @@
-from fastapi import Depends, Query, Request
-from fastapi.routing import APIRouter
-from sqlalchemy.ext.asyncio import AsyncSession
-from src.core.db import get_async_session
-from src.models import Transaction, User, TransactionStatuses
-from .utils import get_period_range
-from datetime import datetime
-from sqlalchemy import func
-from sqlalchemy.future import select
-from datetime import timedelta
+import logging
+from datetime import datetime, timedelta
 from decimal import Decimal
 from enum import Enum
-import logging
+
+from fastapi import Depends, Query, Request
+from fastapi.routing import APIRouter
+from sqlalchemy import func
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+
+from .utils import get_period_range
+from src.core.db import get_async_session
+from src.models import Transaction, User, TransactionStatuses
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +35,9 @@ async def get_exchange_volume(
     (сумма amount по транзакциям).
     /statistics/exchange-volume?period=day|week|month
     """
-    telegram_initdata = request.headers.get('X-Telegram-Initdata', 'Not Provided')
-    
+    telegram_initdata = request.headers.get('X-Telegram-Initdata',
+                                            'Not Provided')
+
     logger.info(f'X-Telegram-InitData: {telegram_initdata}')
     start, end = get_period_range(period)
 

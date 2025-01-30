@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import logging.config
 import logging.handlers
 import os
 
@@ -8,8 +9,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.routers import main_router
-from src.core.db import engine as db, set_isolation_level, AsyncSessionLocal
-from src.core.config import settings
+from src.core.db import engine as db, set_isolation_level
+from src.core.config import settings, LOGGING_CONFIG
 from src.middlewares import TelegramAuthMiddleware
 from src.models import init_models
 
@@ -17,15 +18,7 @@ from src.models import init_models
 if not os.path.exists('logs'):
     os.makedirs('logs')
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s|%(name)s|%(levelname)s|%(message)s|',
-    handlers=[
-        logging.handlers.RotatingFileHandler(
-            'logs/app.log', maxBytes=10*1024*1024, backupCount=5),
-        logging.StreamHandler()
-    ]
-)
+logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger(__name__)
 
 
@@ -60,7 +53,7 @@ async def main():
     #     await load_csv_data(session, 'user.csv', 'transaction.csv')
 
     config = uvicorn.Config('main:app', host='0.0.0.0',
-                            port=8000, reload=True)
+                            port=8000, reload=True, log_config=None)
     server = uvicorn.Server(config)
     await server.serve()
 

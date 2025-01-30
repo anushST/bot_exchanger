@@ -75,12 +75,14 @@ class ChangellyClient:
             async with session.post(
                 'https://api.changelly.com/v2/',
                 headers=headers,
-                data=rpc_request.model_dump_json(by_alias=True, exclude_none=True)
+                data=rpc_request.model_dump_json(
+                    by_alias=True, exclude_none=True)
             ) as response:
                 if response.status != 200:
                     text = await response.text()
                     print(text)
                     raise Exception(f"Changelly API error (HTTP {response.status}): {text}") # noqa
+                print(await response.text())
                 data = await response.json()
                 response_data = schemas.JsonRPCResponse(**data)
 
@@ -118,14 +120,50 @@ class ChangellyClient:
         return []
 
     async def get_float_estimate(
-            self, params: schemas.CreateFloatEstimate
+            self, params: schemas.CreateFloatEstimate = None
             ) -> schemas.FloatEstimate:
         response = await self._request(method='getExchangeAmount',
                                        params=params)
-        print(response)
         estimate = response.result
         if estimate and isinstance(estimate, list):
             return [schemas.FloatEstimate(**x) for x in estimate]
+        return []
+
+    async def get_float_estimates(self):
+        rate_pairs = await self.get_pairs()
+        estimates = []
+        for rate in rate_pairs:
+            estimates.append(
+                schemas.CreateFloatEstimate(
+                    from_coin=rate.from_coin,
+                    to=rate.to_coin,
+                    amountFrom=1
+                )
+            )
+        response = await self._request(method='getExchangeAmount',
+                                       params=estimates)
+        estimate = response.result
+        if estimate and isinstance(estimate, list):
+            return [schemas.FloatEstimate(**x) for x in estimate]
+        return []
+
+    async def get_fixed_estimates(self):
+        rate_pairs = await self.get_pairs()
+        estimates = []
+        for rate in rate_pairs:
+            estimates.append(
+                schemas.CreateFixedEstimate(
+                    from_coin=rate.from_coin,
+                    to=rate.to_coin,
+                    amountFrom=1
+                )
+            )
+        print(estimates)
+        response = await self._request(method='getFixRateForAmount',
+                                       params=estimates)
+        estimate = response.result
+        if estimate and isinstance(estimate, list):
+            return [schemas.FixedEstimate(**x) for x in estimate]
         return []
 
     async def get_fixed_estimate(
@@ -133,13 +171,13 @@ class ChangellyClient:
             ) -> schemas.FixedEstimate:
         response = await self._request(method='getFixRateForAmount',
                                        params=params)
+        print(response)
         estimate = response.result
-        print(estimate)
         if estimate and isinstance(estimate, list):
             return [schemas.FixedEstimate(**x) for x in estimate]
         return []
 
-    async def get_rate(self, data: CreateBestPrice):
+    async def get_rate(self, data: CreateBestPrice = None):
         from_ccy = await changelly_redis_client.get_coin_full_info(
             data.from_currency, data.from_network
         )

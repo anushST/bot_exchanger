@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 
 from src.core.db import get_async_session
 from src.core.config import settings
-from src.models import MarketingLink, User
+from src.models import MarketingLink
 
 from .schemas import (
     MarketingLinkCreate,
@@ -18,7 +20,6 @@ router = APIRouter()
 
 @router.get("/", response_model=list[MarketingLinkOut])
 async def get_marketing_links(
-    user_id: int = None,
     db: AsyncSession = Depends(get_async_session)
 ):
     """
@@ -27,12 +28,6 @@ async def get_marketing_links(
     Если он передан — фильтруем по user_name.
     """
     stmt = select(MarketingLink)
-    if user_id:
-        stmt = (
-            select(MarketingLink)
-            .join(MarketingLink.user)
-            .where(User.tg_id == user_id)
-        )
     result = await db.execute(stmt)
     links = result.scalars().all()
     result = []
@@ -41,7 +36,6 @@ async def get_marketing_links(
             result.append(MarketingLinkOut(
                 id=link.id,
                 name=link.name,
-                user_id=link.user.tg_id,
                 new_users=link.new_users,
                 total_clicks=link.total_clicks,
                 link=f"https://{settings.DOMAIN}/lk/{link.id}"
@@ -59,13 +53,19 @@ async def get_marketing_link(
     """
     stmt = select(MarketingLink).where(MarketingLink.id == link_id)
     result = await db.execute(stmt)
-    marketing_link = result.scalars().first()
-    if not marketing_link:
+    link = result.scalars().first()
+    if not link:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Marketing link not found"
         )
-    return marketing_link
+    return MarketingLinkOut(
+        id=link.id,
+        name=link.name,
+        new_users=link.new_users,
+        total_clicks=link.total_clicks,
+        link=f"https://{settings.DOMAIN}/lk/{link.id}"
+    )
 
 
 @router.post("/", response_model=MarketingLinkOut,
@@ -79,15 +79,6 @@ async def create_marketing_link(
     - user_name: имя пользователя (строка).
     - name: название ссылки (строка).
     """
-    stmt_user = select(User).where(User.tg_id == data.user_id)
-    user_result = await db.execute(stmt_user)
-    user = user_result.scalars().first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User with this id does not exist"
-        )
-
     stmt_link = select(MarketingLink).where(MarketingLink.name == data.name)
     link_result = await db.execute(stmt_link)
     existing_link = link_result.scalars().first()
@@ -99,7 +90,6 @@ async def create_marketing_link(
 
     new_link = MarketingLink(
         name=data.name,
-        user_id=user.id
     )
     db.add(new_link)
     await db.commit()
@@ -107,7 +97,6 @@ async def create_marketing_link(
     return MarketingLinkOut(
         id=new_link.id,
         name=new_link.name,
-        user_id=new_link.user.tg_id,
         new_users=new_link.new_users,
         total_clicks=new_link.total_clicks,
         link=f"https://{settings.DOMAIN}/lk/{new_link.id}"
@@ -148,7 +137,13 @@ async def update_marketing_link(
 
     await db.commit()
     await db.refresh(marketing_link)
-    return marketing_link
+    return MarketingLinkOut(
+        id=marketing_link.id,
+        name=marketing_link.name,
+        new_users=marketing_link.new_users,
+        total_clicks=marketing_link.total_clicks,
+        link=f"https://{settings.DOMAIN}/lk/{marketing_link.id}"
+    )
 
 
 @router.delete("/{link_id}", status_code=status.HTTP_204_NO_CONTENT)

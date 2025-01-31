@@ -34,31 +34,37 @@ LOGGING_CONFIG = {
     "handlers": {
         "file": {
             "class": "logging.FileHandler",
-            "filename": "logs/admin.log",
+            "filename": "logs/backend.log",
             "formatter": "default",
             "level": "DEBUG"
-        }
+        },
+        "console": {
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stdout",
+            "formatter": "default",
+            "level": "INFO"
+        },
     },
     "loggers": {
         "uvicorn": {
-            "handlers": ["file"],
+            "handlers": ["file", "console"],
             "level": "INFO",
             "propagate": False
         },
         "uvicorn.error": {
-            "handlers": ["file"],
+            "handlers": ["file", "console"],
             "level": "INFO",
             "propagate": False
         },
         "uvicorn.access": {
-            "handlers": ["file"],
+            "handlers": ["file", "console"],
             "level": "INFO",
             "propagate": False
         }
     },
     "root": {
         "level": "INFO",
-        "handlers": ["file"]
+        "handlers": ["file", "console"]
     }
 }
 

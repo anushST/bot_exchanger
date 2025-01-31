@@ -1,7 +1,8 @@
 from datetime import datetime
+from enum import Enum as PythonEnum
 
-from sqlalchemy import (Boolean, Column, DateTime, DECIMAL, Enum, ForeignKey,
-                        Integer, String, Text)
+from sqlalchemy import (Column, DateTime, DECIMAL, Enum, ForeignKey,
+                        Integer, String)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.future import select
 from sqlalchemy.inspection import inspect
@@ -11,34 +12,17 @@ from src.utils.random import generate_unique_name
 from src.core.db import Base
 
 
-class RateTypes:
+class RateTypes(PythonEnum):
     FLOAT = 'float'
     FIXED = 'fixed'
-    CHOICES = (FLOAT, FIXED)
 
 
-class DirectionTypes:
+class DirectionTypes(PythonEnum):
     FROM = 'from'
     TO = 'to'
-    CHOICES = (FROM, TO)
 
 
-class EmergencyChoices:
-    NONE = "NONE"
-    EXCHANGE = "EXCHANGE"
-    REFUND = "REFUND"
-    CHOICES = (NONE, EXCHANGE, REFUND,)
-
-
-class EmergencyStatuses:
-    EXPIRED = "EXPIRED"
-    LESS = "LESS"
-    MORE = "MORE"
-    LIMIT = "LIMIT"
-    CHOICES = (EXPIRED, LESS, MORE, LIMIT,)
-
-
-class TransactionStatuses:
+class TransactionStatuses(PythonEnum):
     NEW = 'new'  # New order
     HANDLED = 'handled'  # Transaction handled by one of the exchangers
     CREATED = 'created'  # Transaction has been created
@@ -49,8 +33,6 @@ class TransactionStatuses:
     EXPIRED = 'expired'  # Order expired
     EMERGENCY = 'emergency'  # Emergency, customer choice required
     ERROR = 'error'  # when some error oqqurs
-    OPTIONS = (NEW, HANDLED, CREATED, PENDING, EXCHANGE, WITHDRAW, DONE,
-               EXPIRED, EMERGENCY, ERROR,)
 
 
 class Transaction(Base):
@@ -58,24 +40,25 @@ class Transaction(Base):
     # Transaction meta-data
     name = Column(String(6), unique=True, nullable=False)
     status_code = Column(Integer(), nullable=True)
-    status = Column(Enum(*TransactionStatuses.OPTIONS,
-                         name='transaction_statuses'),
-                    nullable=False, default=TransactionStatuses.NEW)
-    is_status_showed = Column(Boolean, nullable=False, default=True)
-    msg = Column(Text(), nullable=True)
+    status = Column(
+        Enum(*[status.value for status in TransactionStatuses],
+             name='transaction_statuses'),
+        nullable=False, default=TransactionStatuses.NEW.value)
     user_id = Column(UUID(as_uuid=True), ForeignKey('user.id'),
                      nullable=False)
     exchanger = Column(String(255), nullable=True)
 
     # Data to create order
-    rate_type = Column(Enum(*RateTypes.CHOICES, name='transaction_types'),
-                       nullable=False)
+    rate_type = Column(
+        Enum(*[rate.value for rate in RateTypes], name='transaction_types'),
+        nullable=False)
     from_currency = Column(String(10), nullable=False)
     from_currency_network = Column(String(10), nullable=False)
     to_currency = Column(String(10), nullable=False)
     to_currency_network = Column(String(10), nullable=False)
-    direction = Column(Enum(*DirectionTypes.CHOICES, name='direction_types'),
-                       nullable=False)
+    direction = Column(
+        Enum(*[d.value for d in DirectionTypes], name='direction_types'),
+        nullable=False)
     amount = Column(DECIMAL(precision=50, scale=10), nullable=False)
     to_address = Column(String(255), nullable=False)
     tag_name = Column(String(512), nullable=True)
@@ -87,9 +70,9 @@ class Transaction(Base):
     # Transaction data (from endpoint)
     transaction_id = Column(String(255), nullable=True)
     transaction_token = Column(String(255), nullable=True)
-    final_rate_type = Column(Enum(*RateTypes.CHOICES,
-                                  name='transaction_types'),
-                             nullable=True)
+    final_rate_type = Column(
+        Enum(*[rate.value for rate in RateTypes], name='transaction_types'),
+        nullable=True)
     time_registred = Column(DateTime, nullable=True)
     time_expiration = Column(DateTime, nullable=True)
 
@@ -132,29 +115,11 @@ class Transaction(Base):
                                   nullable=True)
     received_back_confirmations = Column(Integer(), nullable=True)
 
-    # 1.4 Emergency
-    is_emergency_handled = Column(Boolean, default=False)
-    emergency_statuses = Column(String(255), nullable=True)
-    emergency_choise = Column(Enum(*EmergencyChoices.CHOICES,
-                                   name='emergency_choises'),
-                              nullable=True)
-    emergency_address = Column(String(255), nullable=True)
-    emergency_tag_name = Column(String(512), nullable=True)
-    emergency_tag_value = Column(String(512), nullable=True)
-    made_emergency_action = Column(Boolean(), nullable=True, default=True) # Use for error address or other problems # noqa
-
     created_at = Column(DateTime, default=datetime.now, nullable=False)
     updated_at = Column(DateTime, default=datetime.now,
                         onupdate=datetime.now, nullable=False)
 
     user = relationship('User', lazy='joined')
-
-    def set_emergency_statuses(self, statuses: list[str]) -> bool:
-        self.emergency_statuses = ':'.join(statuses)
-        return True
-
-    def get_emergency_statuses(self) -> list[str]:
-        return self.emergency_statuses.split(':')
 
     def to_dict(self):
         return ({column.key: getattr(self, column.key)

@@ -1,4 +1,4 @@
-# Codes started with 4.. mean errors.
+# Codes started with 4.. mean errors made by client.
 INVALID_ADDRESS_CODE = 400
 OUT_OF_LIMITS_CODE = 401
 INVALID_EMERGENCY_ADDRESS_CODE = 402

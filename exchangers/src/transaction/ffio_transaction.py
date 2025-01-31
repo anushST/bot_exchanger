@@ -1,3 +1,4 @@
+# flake8: noqa
 import asyncio
 import logging
 from datetime import datetime
@@ -12,7 +13,7 @@ from src.api.ffio.ffio_client import ffio_client
 from src.api.ffio.ffio_redis_data import ffio_redis_client
 from src.database import get_session
 from src.models import (
-    Transaction, TransactionStatuses, EmergencyChoices)
+    Transaction, TransactionStatuses)
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ class FFioTransaction:
         self.transaction_id = transaction_id
 
     async def process(self) -> None:
-        logger.info('Handled by ffio')
+        logger.info(f'Transaction {self.transaction_id} handled by ffio.')
         try:
             sleep_time = 5
             expired_retries = 0
@@ -40,14 +41,14 @@ class FFioTransaction:
                         f'Transaction {self.transaction_id} not found.')
                     break
 
-                if transaction.status == TransactionStatuses.NEW:
+                if transaction.status == TransactionStatuses.NEW.value:
                     logger.error('Invalid transaction status NEW '
                                  f'for {self.transaction_id}')
                     break
 
                 stop_processing_statuses = (
-                    TransactionStatuses.DONE,
-                    TransactionStatuses.ERROR
+                    TransactionStatuses.DONE.value,
+                    TransactionStatuses.ERROR.value
                 )
                 if transaction.status in stop_processing_statuses:
                     logger.info('Stopping processing for transaction '
@@ -55,12 +56,12 @@ class FFioTransaction:
                                 f'{transaction.status}')
                     break
 
-                if transaction.status == TransactionStatuses.EXPIRED:
+                if transaction.status == TransactionStatuses.EXPIRED.value:
                     sleep_time = 60
                     expired_retries += 1
 
                 try:
-                    if transaction.status == TransactionStatuses.HANDLED:
+                    if transaction.status == TransactionStatuses.HANDLED.value:
                         await self._handle_new(transaction)
                     else:
                         await self._handle_handled(transaction)
@@ -133,12 +134,10 @@ class FFioTransaction:
             try:
                 async with get_session() as session:
                     if error_status_code:
-                        transaction.status = TransactionStatuses.ERROR
-                        transaction.is_status_showed = False
+                        transaction.status = TransactionStatuses.ERROR.value
                         transaction.status_code = error_status_code
                     else:
-                        transaction.status = TransactionStatuses.CREATED
-                        transaction.is_status_showed = False
+                        transaction.status = TransactionStatuses.CREATED.value
 
                         transaction.transaction_id = response.id
                         transaction.transaction_token = response.token
@@ -179,85 +178,85 @@ class FFioTransaction:
                          f'{self.transaction_id}: {e}', exc_info=True)
             raise
 
-    async def _handle_emergency(self) -> None:
-        logger.info('Emergency for transaction')
-        try:
-            while True:
-                try:
-                    transaction = await self._get_transaction()
-                except ex.DatabaseError as e:
-                    logger.error('Database error while fetching transaction '
-                                 f'{self.transaction_id}: {e}', exc_info=True)
-                    break
+    # async def _handle_emergency(self) -> None:
+    #     logger.info('Emergency for transaction')
+    #     try:
+    #         while True:
+    #             try:
+    #                 transaction = await self._get_transaction()
+    #             except ex.DatabaseError as e:
+    #                 logger.error('Database error while fetching transaction '
+    #                              f'{self.transaction_id}: {e}', exc_info=True)
+    #                 break
 
-                if not transaction:
-                    logger.warning(
-                        f'Transaction {self.transaction_id} not found.')
-                    break
+    #             if not transaction:
+    #                 logger.warning(
+    #                     f'Transaction {self.transaction_id} not found.')
+    #                 break
 
-                if transaction.status != TransactionStatuses.EMERGENCY:
-                    logger.critical('This transaction is not emergency '
-                                    f'({self.transaction_id})')
-                    break
-                try:
-                    if transaction.emergency_choise is not None:
-                        if transaction.emergency_choise == EmergencyChoices.EXCHANGE: # noqa
-                            data = schemas.CreateEmergency(
-                                id=transaction.transaction_id,
-                                token=transaction.transaction_token,
-                                choice=transaction.emergency_choise
-                            )
-                        elif transaction.emergency_choise == EmergencyChoices.REFUND: # noqa
-                            data = schemas.CreateEmergency(
-                                id=transaction.transaction_id,
-                                token=transaction.transaction_token,
-                                choice=transaction.emergency_choise,
-                                address=transaction.emergency_address,
-                                tag=transaction.emergency_tag_value
-                            )
-                        else:
-                            raise Exception('No such choise')  # ToDo
+    #             if transaction.status != TransactionStatuses.EMERGENCY:
+    #                 logger.critical('This transaction is not emergency '
+    #                                 f'({self.transaction_id})')
+    #                 break
+    #             try:
+    #                 if transaction.emergency_choise is not None:
+    #                     if transaction.emergency_choise == EmergencyChoices.EXCHANGE: # noqa
+    #                         data = schemas.CreateEmergency(
+    #                             id=transaction.transaction_id,
+    #                             token=transaction.transaction_token,
+    #                             choice=transaction.emergency_choise
+    #                         )
+    #                     elif transaction.emergency_choise == EmergencyChoices.REFUND: # noqa
+    #                         data = schemas.CreateEmergency(
+    #                             id=transaction.transaction_id,
+    #                             token=transaction.transaction_token,
+    #                             choice=transaction.emergency_choise,
+    #                             address=transaction.emergency_address,
+    #                             tag=transaction.emergency_tag_value
+    #                         )
+    #                     else:
+    #                         raise Exception('No such choise')  # ToDo
 
-                        is_error = False
-                        try:
-                            if transaction.made_emergency_action:
-                                transaction.made_emergency_action = False
-                                await ffio_client.emergency(data)
-                            else:
-                                is_error = True
-                        except api_ex.InvalidAddressError:
-                            transaction.is_status_showed = False
-                            transaction.status_code = tc.INVALID_EMERGENCY_ADDRESS_CODE # noqa
-                            is_error = True
-                        except Exception as e:
-                            logger.error('Error from FFIO client during order creation ' # noqa
-                                         f'for transaction {self.transaction_id}: {e}', # noqa
-                                         exc_info=True)
-                            continue
+    #                     is_error = False
+    #                     try:
+    #                         if transaction.made_emergency_action:
+    #                             transaction.made_emergency_action = False
+    #                             await ffio_client.emergency(data)
+    #                         else:
+    #                             is_error = True
+    #                     except api_ex.InvalidAddressError:
+    #                         transaction.is_status_showed = False
+    #                         transaction.status_code = tc.INVALID_EMERGENCY_ADDRESS_CODE # noqa
+    #                         is_error = True
+    #                     except Exception as e:
+    #                         logger.error('Error from FFIO client during order creation ' # noqa
+    #                                      f'for transaction {self.transaction_id}: {e}', # noqa
+    #                                      exc_info=True)
+    #                         continue
 
-                        try:
-                            async with get_session() as session:
-                                transaction.is_emergency_handled = True
-                                session.add(transaction)
-                                await session.commit()
-                                await session.refresh(transaction)
-                        except Exception as e:
-                            logger.error(f'Error retrieving transaction {self.transaction_id} ' # noqa
-                                         f'from database: {e}', exc_info=True)
-                            raise ex.DatabaseError(
-                                'Error accessing transaction database') from e
-                        if not is_error:
-                            return
-                except Exception as e:
-                    logger.error(f'Error during transaction processing '
-                                 f'{self.transaction_id}: {e}', exc_info=True)
-                    break
+    #                     try:
+    #                         async with get_session() as session:
+    #                             transaction.is_emergency_handled = True
+    #                             session.add(transaction)
+    #                             await session.commit()
+    #                             await session.refresh(transaction)
+    #                     except Exception as e:
+    #                         logger.error(f'Error retrieving transaction {self.transaction_id} ' # noqa
+    #                                      f'from database: {e}', exc_info=True)
+    #                         raise ex.DatabaseError(
+    #                             'Error accessing transaction database') from e
+    #                     if not is_error:
+    #                         return
+    #             except Exception as e:
+    #                 logger.error(f'Error during transaction processing '
+    #                              f'{self.transaction_id}: {e}', exc_info=True)
+    #                 break
 
-                await asyncio.sleep(5)
-        except Exception as e:
-            logger.critical('Unhandled exception in transaction processing '
-                            f'{self.transaction_id}: {e}', exc_info=True)
-            raise
+    #             await asyncio.sleep(5)
+    #     except Exception as e:
+    #         logger.critical('Unhandled exception in transaction processing '
+    #                         f'{self.transaction_id}: {e}', exc_info=True)
+    #         raise
 
     async def _handle_handled(self, transaction: Transaction) -> None:
         try:
@@ -281,13 +280,13 @@ class FFioTransaction:
                 return
 
             status_mapping = {
-                schemas.OrderStatus.NEW: TransactionStatuses.CREATED,
-                schemas.OrderStatus.PENDING: TransactionStatuses.PENDING,
-                schemas.OrderStatus.EXCHANGE: TransactionStatuses.EXCHANGE,
-                schemas.OrderStatus.WITHDRAW: TransactionStatuses.WITHDRAW,
-                schemas.OrderStatus.DONE: TransactionStatuses.DONE,
-                schemas.OrderStatus.EXPIRED: TransactionStatuses.EXPIRED,
-                schemas.OrderStatus.EMERGENCY: TransactionStatuses.EMERGENCY,
+                schemas.OrderStatus.NEW: TransactionStatuses.CREATED.value,
+                schemas.OrderStatus.PENDING: TransactionStatuses.PENDING.value,
+                schemas.OrderStatus.EXCHANGE: TransactionStatuses.EXCHANGE.value,
+                schemas.OrderStatus.WITHDRAW: TransactionStatuses.WITHDRAW.value,
+                schemas.OrderStatus.DONE: TransactionStatuses.DONE.value,
+                schemas.OrderStatus.EXPIRED: TransactionStatuses.EXPIRED.value,
+                schemas.OrderStatus.EMERGENCY: TransactionStatuses.EMERGENCY.value,
             }
 
             new_status = status_mapping.get(response.status)
@@ -300,7 +299,6 @@ class FFioTransaction:
                 async with get_session() as session:
                     if new_status != transaction.status:
                         transaction.status = new_status
-                        transaction.is_status_showed = False
                         logger.info(f'Transaction {self.transaction_id} updated to ' # noqa
                                     f'status {new_status}.')
                     # from
@@ -320,8 +318,6 @@ class FFioTransaction:
                     transaction.received_back_id = response.back_info.tx.id
                     transaction.received_back_amount = response.back_info.tx.amount # noqa
                     transaction.received_back_confirmations = response.back_info.tx.confirmations # noqa
-                    # emergency
-                    transaction.set_emergency_statuses(response.emergency.status) # noqa
 
                     session.add(transaction)
                     await session.commit()
@@ -332,9 +328,9 @@ class FFioTransaction:
                              f'from database: {e}', exc_info=True)
                 raise ex.DatabaseError(
                     'Error accessing transaction database') from e
-            if (new_status == TransactionStatuses.EMERGENCY
-                    and not transaction.is_emergency_handled):
-                await self._handle_emergency()
+            # if (new_status == TransactionStatuses.EMERGENCY
+            #         and not transaction.is_emergency_handled):
+            #     await self._handle_emergency()
 
         except Exception as e:
             logger.error('Error handling HANDLED transaction '

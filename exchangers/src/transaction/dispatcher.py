@@ -40,8 +40,9 @@ class TransactionDispatcher:
     """Dispatch transaction to a exchanger."""
 
     async def get_best_exchanger(self, transaction: Transaction) -> None:
-        if transaction.status == TransactionStatuses.HANDLED:
-            await get_best_price(transaction)
+        if transaction.status == TransactionStatuses.HANDLED.value:
+            asyncio.create_task(FFioTransaction(transaction.id).process())
+            # await get_best_price(transaction)
             return
         raise ValueError('In dispatcher the transaction status '
                          'should be always new')

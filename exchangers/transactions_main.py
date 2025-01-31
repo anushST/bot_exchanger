@@ -41,14 +41,14 @@ async def main():
                 try:
                     result = await session.execute(
                         select(Transaction).where(
-                            Transaction.status == TransactionStatuses.NEW)
+                            Transaction.status == TransactionStatuses.NEW.value) # noqa
                     )
                     transactions = result.scalars().all()
 
                     if transactions:
                         for transaction in transactions:
                             try:
-                                transaction.status = TransactionStatuses.HANDLED # noqa
+                                transaction.status = TransactionStatuses.HANDLED.value # noqa
                                 await session.commit()
                                 await session.refresh(transaction)
 
@@ -68,7 +68,7 @@ async def main():
             logger.error(f'Unexpected error in main loop: {e}', exc_info=True)
             await asyncio.sleep(5)
 
-        await asyncio.sleep(1)
+        await asyncio.sleep(2)
 
 
 if __name__ == '__main__':

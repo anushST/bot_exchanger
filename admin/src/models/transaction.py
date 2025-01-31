@@ -1,8 +1,8 @@
 from datetime import datetime
 from enum import Enum as PythonEnum
 
-from sqlalchemy import (Boolean, Column, DateTime, DECIMAL, Enum, ForeignKey,
-                        Integer, String, Text)
+from sqlalchemy import (Column, DateTime, DECIMAL, Enum, ForeignKey,
+                        Integer, String)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.future import select
 from sqlalchemy.inspection import inspect
@@ -20,19 +20,6 @@ class RateTypes(PythonEnum):
 class DirectionTypes(PythonEnum):
     FROM = 'from'
     TO = 'to'
-
-
-class EmergencyChoices(PythonEnum):
-    NONE = "NONE"
-    EXCHANGE = "EXCHANGE"
-    REFUND = "REFUND"
-
-
-class EmergencyStatuses(PythonEnum):
-    EXPIRED = "EXPIRED"
-    LESS = "LESS"
-    MORE = "MORE"
-    LIMIT = "LIMIT"
 
 
 class TransactionStatuses(PythonEnum):
@@ -56,9 +43,7 @@ class Transaction(Base):
     status = Column(
         Enum(*[status.value for status in TransactionStatuses],
              name='transaction_statuses'),
-        nullable=False, default=TransactionStatuses.NEW)
-    is_status_showed = Column(Boolean, nullable=False, default=True)
-    msg = Column(Text(), nullable=True)
+        nullable=False, default=TransactionStatuses.NEW.value)
     user_id = Column(UUID(as_uuid=True), ForeignKey('user.id'),
                      nullable=False)
     exchanger = Column(String(255), nullable=True)
@@ -130,30 +115,11 @@ class Transaction(Base):
                                   nullable=True)
     received_back_confirmations = Column(Integer(), nullable=True)
 
-    # 1.4 Emergency
-    is_emergency_handled = Column(Boolean, default=False)
-    emergency_statuses = Column(String(255), nullable=True)
-    emergency_choise = Column(
-        Enum(*[choise.value for choise in EmergencyChoices],
-             name='emergency_choises'),
-        nullable=True)
-    emergency_address = Column(String(255), nullable=True)
-    emergency_tag_name = Column(String(512), nullable=True)
-    emergency_tag_value = Column(String(512), nullable=True)
-    made_emergency_action = Column(Boolean(), nullable=True, default=True) # Use for error address or other problems # noqa
-
     created_at = Column(DateTime, default=datetime.now, nullable=False)
     updated_at = Column(DateTime, default=datetime.now,
                         onupdate=datetime.now, nullable=False)
 
     user = relationship('User', lazy='joined')
-
-    def set_emergency_statuses(self, statuses: list[str]) -> bool:
-        self.emergency_statuses = ':'.join(statuses)
-        return True
-
-    def get_emergency_statuses(self) -> list[str]:
-        return self.emergency_statuses.split(':')
 
     def to_dict(self):
         return ({column.key: getattr(self, column.key)

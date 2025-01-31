@@ -12,7 +12,7 @@ from src.api.changelly import changelly_client
 from src.api.changelly.changelly_redis_data import changelly_redis_client
 from src.database import get_session
 from src.models import (
-    Transaction, TransactionStatuses, EmergencyChoices, RateTypes)
+    Transaction, TransactionStatuses, RateTypes)
 
 logger = logging.getLogger(__name__)
 

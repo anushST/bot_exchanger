@@ -3,8 +3,7 @@ import logging
 from fastapi import APIRouter, Request
 
 from src.api.ffio.ffio_redis_data import ffio_redis_client
-from src.core.db import get_async_session
-from src.models import Transaction
+from src.core.config import settings
 
 router = APIRouter()
 
@@ -13,7 +12,15 @@ logger = logging.getLogger(__name__)
 
 @router.get('/')
 async def get_currencies(request: Request):
-    return await ffio_redis_client.get_coins()
+    coins = await ffio_redis_client.get_coins()
+    result = []
+    for coin in coins:
+        
+        result.append({
+            'name': coin,
+            'url': f'https://{settings.DOMAIN}/coins/{coin}.png'
+        })
+    return result
 
 
 @router.get('/info')

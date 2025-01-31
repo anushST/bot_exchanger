@@ -44,7 +44,7 @@ app.add_middleware(
     allow_methods=['*'],  # Разрешаем все методы (GET, POST, PUT, DELETE и т. д.)
     allow_headers=['*'],  # Разрешаем все заголовки
 )
-app.add_middleware(TelegramAuthMiddleware)
+# app.add_middleware(TelegramAuthMiddleware)
 
 
 async def main():
@@ -53,7 +53,7 @@ async def main():
     #     await load_csv_data(session, 'user.csv', 'transaction.csv')
 
     config = uvicorn.Config('main:app', host='0.0.0.0',
-                            port=8000, reload=True, log_config=None)
+                            port=8002, reload=True, log_config=None)
     server = uvicorn.Server(config)
     await server.serve()
 

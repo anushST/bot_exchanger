@@ -1,9 +1,10 @@
+"""!!! Данный файл устарел, но некторые файлы связанны с ним"""
 import logging
 
 from redis.asyncio import StrictRedis
 
 from src.config import config
-from src.api.ffio import schemas
+from src.api.schemas import Coin
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ class ChangellyRedisClient:
             self.COIN_NETWORKS.format(coin_name=coin_name))
 
     async def get_coin_full_info(self, coin_name: str,
-                                 network: str) -> schemas.Currency:
+                                 network: str) -> Coin:
         coin_info = await self.redis_client.get(
             self.FULL_COIN_INFO_KEY.format(
                 exchanger=self.EXCHANGER,
@@ -39,16 +40,8 @@ class ChangellyRedisClient:
                 network=network
             )
         )
-        import json
-        coin_info = json.loads(coin_info)
-        return schemas.Currency(
-            code=coin_info.get('ticker'),
-            coin=coin_info.get('coin').upper(),
-            network=coin_info.get('network').upper(),
-            name=coin_info.get('name'),
-            recv=coin_info.get('enabled_to'),
-            send=coin_info.get('enabled_from')
-        )
+        if coin_info:
+            return Coin.model_validate_json(coin_info)
 
 
 changelly_redis_client = ChangellyRedisClient()

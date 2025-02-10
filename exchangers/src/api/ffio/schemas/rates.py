@@ -45,11 +45,11 @@ class PriceData(BaseModel):
 
 class RatesSchema(BaseModel):
     from_coin: str
-    to_coin: str = Field(..., alias='to')
+    to_coin: str
     in_amount: Decimal
-    out_amount: Decimal = Field(..., alias='out')
-    amount: Decimal
-    tofee: Optional[Decimal] = None
-    tofee_currency: Optional[str] = None
-    min_amount: Decimal = Field(..., alias='minamount')
-    max_amount: Decimal = Field(..., alias='maxamount')
+    out_amount: Decimal
+    to_network_fee: Optional[Decimal] = None
+    min_from_amount: Optional[Decimal] = None
+    min_to_amount: Optional[Decimal] = None
+    max_from_amount: Optional[Decimal] = None
+    max_to_amount: Optional[Decimal] = None

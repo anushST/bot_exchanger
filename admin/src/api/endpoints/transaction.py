@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api import schemas
+from src.api.endpoints import schemas
 from src.core.db import get_async_session
-from src.models import RateTypes, Transaction, TransactionStatuses
+from src.models import Transaction, TransactionStatuses, User
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -20,12 +20,13 @@ async def get_user_transactions(
 ):
     try:
         result = await session.execute(
-            select(Transaction).where(Transaction.user_id == '89d66996-2749-4072-ab32-3d791cfcd90a')
+            select(Transaction)
             .order_by(Transaction.created_at.desc())
             .offset(offset)
             .limit(limit)
         )
         transactions = result.scalars().all()
+
         return [
             schemas.TransactionSummary(
                 rate_type=transaction.rate_type,
@@ -43,7 +44,8 @@ async def get_user_transactions(
     except Exception as e:
         logger.error(e, exc_info=True)
         raise HTTPException(
-            status_code=500, detail=f'Error retrieving transactions: {str(e)}')
+            status_code=500, detail=f'Error retrieving transactions: {str(e)}'
+        )
 
 
 @router.get('/{transaction_id}')
@@ -55,15 +57,29 @@ async def get_transaction(
             select(Transaction).where(Transaction.name == transaction_id)
         )
         transaction = result.scalars().first()
+
+        result = await session.execute(
+            select(User).where(User.id == transaction.user_id)
+        )
+
         if not transaction:
             raise HTTPException(status_code=404,
                                 detail='Transaction not found')
+
+        user = result.scalars().first()
+        if user:
+            user_model = schemas.User(
+                tg_id=user.tg_id, tg_name=user.tg_name,
+                tg_username=user.tg_username
+            )
+
         if transaction.status == TransactionStatuses.NEW.value:
             return {'detail': 'Transaction is not processed yet'}
         elif transaction.status == TransactionStatuses.ERROR.value:
             return {'detail': 'Transaction finished with error',
                     'code': transaction.status_code}
         return schemas.Transaction(
+            user=user_model,
             rate_type=transaction.final_rate_type,
             currency_from=transaction.final_from_currency,
             currency_from_network=transaction.final_from_network,
@@ -84,6 +100,7 @@ async def get_transaction(
             to_tag_value=transaction.final_to_tag_value,
             refund_tag_value=transaction.refund_tag_value,
             time_expiration=transaction.time_expiration,
+            created_at=transaction.created_at,
             received_from_id=transaction.received_from_id,
             received_from_amount=transaction.received_from_amount,
             received_from_confirmations=transaction.received_from_confirmations, # noqa
@@ -100,48 +117,3 @@ async def get_transaction(
         logger.error(e, exc_info=True)
         raise HTTPException(
             status_code=500, detail=f'Error retrieving transaction: {str(e)}')
-
-
-@router.post('/')
-async def create_transaction(
-    data: schemas.CreateTransaction,
-    session: AsyncSession = Depends(get_async_session)
-):
-    try:
-        rate_type = data.rate_type
-        refund_address = data.refund_address
-
-        if rate_type == RateTypes.FIXED.value:
-            if not refund_address:
-                raise HTTPException(
-                    status_code=400,
-                    detail='Return address is required for FIXED rate type'
-                )
-
-        transaction = Transaction(
-            user_id='89d66996-2749-4072-ab32-3d791cfcd90a',
-            name=await Transaction.create_unique_name(session),
-            rate_type=data.rate_type.value,
-            from_currency=data.currency_from,
-            from_currency_network=data.currency_from_network,
-            to_currency=data.currency_to,
-            to_currency_network=data.currency_to_network,
-            direction=data.exchange_direction.value,
-            amount=data.amount_value,
-            to_address=data.wallet_address,
-            tag_value=data.tag_value,
-            refund_address=data.refund_address,
-            refund_tag_value=data.refund_tag_value
-        )
-
-        session.add(transaction)
-        await session.commit()
-        await session.refresh(transaction)
-
-        return {'id': transaction.name}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(e, exc_info=True)
-        raise HTTPException(
-            status_code=500, detail=f'Error creating transaction: {str(e)}')

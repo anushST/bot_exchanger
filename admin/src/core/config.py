@@ -34,7 +34,7 @@ LOGGING_CONFIG = {
     "handlers": {
         "file": {
             "class": "logging.FileHandler",
-            "filename": "logs/backend.log",
+            "filename": "logs/admin.log",
             "formatter": "default",
             "level": "DEBUG"
         },

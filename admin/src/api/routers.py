@@ -15,3 +15,7 @@ main_router.include_router(
 main_router.include_router(
     endpoints.admin_user_router, prefix='/admin/users', tags=['Admin Users']
 )
+main_router.include_router(
+    endpoints.admin_transaction_router, prefix='/admin/transactions',
+    tags=['Transactions']
+)

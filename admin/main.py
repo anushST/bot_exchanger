@@ -9,11 +9,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.routers import main_router
-from src.core.db import engine as db, set_isolation_level
+from src.core.db import (engine as db, set_isolation_level,
+                         get_async_session_generator)
 from src.core.config import settings, LOGGING_CONFIG
+from src.fake_data import generate_transactions
 from src.middlewares import TelegramAuthMiddleware
 from src.models import init_models
-# from load_csv import load_csv_data
 
 if not os.path.exists('logs'):
     os.makedirs('logs')
@@ -49,11 +50,11 @@ app.add_middleware(
 
 async def main():
     await init_db()
-    # async with AsyncSessionLocal() as session:
-    #     await load_csv_data(session, 'user.csv', 'transaction.csv')
+    async with get_async_session_generator() as session:
+        await generate_transactions(session)
 
     config = uvicorn.Config('main:app', host='0.0.0.0',
-                            port=8001, reload=True, log_config=None)
+                            port=8002, reload=True, log_config=None)
     server = uvicorn.Server(config)
     await server.serve()
 

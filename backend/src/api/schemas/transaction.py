@@ -8,14 +8,20 @@ from src.models import DirectionTypes, RateTypes, TransactionStatuses
 
 
 class BaseRate(BaseModel):
+    rate_type: Optional[RateTypes] = None
+    currency_from: Optional[str] = None
+    currency_from_network: Optional[str] = None
+    currency_to: Optional[str] = None
+    currency_to_network: Optional[str] = None
+
+
+class CreateTransaction(BaseModel):
     rate_type: RateTypes
     currency_from: str
     currency_from_network: str
     currency_to: str
     currency_to_network: str
 
-
-class CreateTransaction(BaseRate):
     exchange_direction: DirectionTypes
     amount_value: Decimal = Field(..., gt=0)
     wallet_address: str
@@ -25,24 +31,25 @@ class CreateTransaction(BaseRate):
 
 
 class TransactionSummary(BaseModel):
-    transaction_id: str
-    status: TransactionStatuses
-    from_amount: Decimal = Field(..., gt=0)
-    from_currency: str
-    to_amount: Decimal = Field(..., gt=0)
-    to_currency: str
-    time_created: datetime
+    rate_type: Optional[RateTypes] = None
+    transaction_id: Optional[str] = None
+    status: Optional[TransactionStatuses] = None
+    from_amount: Optional[Decimal] = Field(None, gt=0)
+    from_currency: Optional[str] = None
+    to_amount: Optional[Decimal] = Field(None, gt=0)
+    to_currency: Optional[str] = None
+    time_created: Optional[datetime] = None
 
 
 class Transaction(BaseRate):
-    transaction_id: str
-    status: str
-    status_code: int
+    transaction_id: Optional[str]
+    status: Optional[str]
+    status_code: Optional[int]
 
-    from_amount: Decimal = Field(..., gt=0)
-    to_amount: Decimal = Field(..., gt=0)
-    from_address: str
-    to_address: str
+    from_amount: Optional[Decimal] = Field(None, gt=0)
+    to_amount: Optional[Decimal] = Field(None, gt=0)
+    from_address: Optional[str]
+    to_address: Optional[str]
     refund_address: Optional[str] = None
     from_tag_name: Optional[str] = None
     to_tag_name: Optional[str] = None
@@ -50,7 +57,7 @@ class Transaction(BaseRate):
     from_tag_value: Optional[str] = None
     to_tag_value: Optional[str] = None
     refund_tag_value: Optional[str] = None
-    time_expiration: datetime
+    time_expiration: Optional[datetime] = None
 
     received_from_id: Optional[str] = None
     received_from_amount: Optional[Decimal] = Field(None, gt=0)

@@ -1,3 +1,4 @@
 # flake8: noqa:
-from .rate import RatesSchemaResponse
+from .coin import Coin
+from .rate import RatesSchema
 from .transaction import CreateTransaction, Transaction, TransactionSummary

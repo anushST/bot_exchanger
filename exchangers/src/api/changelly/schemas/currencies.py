@@ -21,6 +21,7 @@ class Coin(BaseModel):
     coin: str
     network: str
     blockchain_precision: int = Field(..., alias="blockchainPrecision")
+    extra_id_name: Optional[str] = Field(None, alias='extraIdName')
 
 
 class CoinPairs(BaseModel):

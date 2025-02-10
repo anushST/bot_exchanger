@@ -1,38 +1,28 @@
 from datetime import datetime, timedelta
+from enum import Enum
 
 
-def get_period_range(period: str):
-    """
-    Возвращает кортеж (start_datetime, end_datetime) для выбранного периода.
-    Период: "day", "week", "month", "year".
-    """
-    now = datetime.now()
+class PeriodEnum(str, Enum):
+    day = "day"
+    week = "week"
+    month = "month"
+    year = "year"
 
-    if period == "day":
-        start = datetime(now.year, now.month, now.day)
+
+def get_period_range(period: PeriodEnum):
+    now = datetime.utcnow()
+    if period == PeriodEnum.day:
+        start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         end = start + timedelta(days=1)
-
-    elif period == "week":
-        # Предположим, неделя начинается в понедельник
+    elif period == PeriodEnum.week:
         start = now - timedelta(days=now.weekday())
-        start = datetime(start.year, start.month, start.day)
+        start = start.replace(hour=0, minute=0, second=0, microsecond=0)
         end = start + timedelta(weeks=1)
-
-    elif period == "month":
-        start = datetime(now.year, now.month, 1)
-        if now.month == 12:
-            end = datetime(now.year + 1, 1, 1)
-        else:
-            end = datetime(now.year, now.month + 1, 1)
-
-    elif period == "year":
-        # Период: календарный год
-        start = datetime(now.year, 1, 1)
-        end = datetime(now.year + 1, 1, 1)
-
-    else:
-        # По умолчанию пусть будет день
-        start = datetime(now.year, now.month, now.day)
-        end = start + timedelta(days=1)
-
+    elif period == PeriodEnum.month:
+        start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        next_month = start.replace(day=28) + timedelta(days=4)
+        end = next_month.replace(day=1)
+    else:  # PeriodEnum.year
+        start = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        end = start.replace(year=start.year + 1)
     return start, end

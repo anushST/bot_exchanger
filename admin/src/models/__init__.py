@@ -5,6 +5,7 @@ from .admin_user import AdminUser
 from .transaction import (DirectionTypes, RateTypes, Transaction, TransactionStatuses)
 from .user import User
 from .marketing_link import MarketingLink
+from .marketing_link_users import MarketingLinkUser
 from src.core.db import Base
 
 

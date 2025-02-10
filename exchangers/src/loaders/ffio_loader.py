@@ -4,6 +4,7 @@ from collections import defaultdict
 from redis.asyncio import StrictRedis
 
 from src.config import config
+from src.api.schemas import Coin, RatesSchema
 from src.api.ffio import schemas
 from src.api.ffio.ffio_client import ffio_client
 
@@ -39,9 +40,6 @@ class LoadFFIODataToRedis:
         for key, group in grouped_coins.items():
             if len(group) == 1:
                 filtered_coins.append(group[0])
-            else:
-                codes = ', '.join(coin.code for coin in group)
-                logger.info(f'Removed pair {key[0]}/{key[1]}, values: {codes}')
 
         return filtered_coins
 
@@ -53,11 +51,6 @@ class LoadFFIODataToRedis:
         coin_networks = defaultdict(set)
 
         for coin in coins:
-            # await self.redis_client.sadd(self.COINS_KEY, coin.coin)
-            # await self.redis_client.sadd(
-            #     self.COIN_NETWORKS.format(coin_name=coin.coin),
-            #     coin.network
-            # )
             coins_set.add(coin.coin)
             coin_networks[coin.coin].add(coin.network)
             await self.redis_client.set(
@@ -66,7 +59,14 @@ class LoadFFIODataToRedis:
                     coin_name=coin.coin,
                     network=coin.network
                 ),
-                coin.model_dump_json()
+                Coin(
+                    code=coin.code,
+                    coin=coin.coin,
+                    network=coin.network,
+                    receive=coin.recv,
+                    send=coin.send,
+                    tag_name=coin.tag
+                ).model_dump_json(by_alias=True)
             )
 
         await self.redis_client.delete(self.COINS_KEY)
@@ -81,9 +81,7 @@ class LoadFFIODataToRedis:
                 *networks
             )
 
-        logger.info('Currencies and networks loaded successfully')
-
-    async def _load_rates(self, rates: list[schemas.RatesSchema], type: str):
+    async def _load_rates(self, rates: list[RatesSchema], type: str):
         for rate in rates:
             await self.redis_client.set(
                 self.RATE_KEY.format(
@@ -98,9 +96,7 @@ class LoadFFIODataToRedis:
     async def load_fixed_rates(self):
         fixed_rates = await self.api_client.get_fixed_rates()
         await self._load_rates(fixed_rates, 'fixed')
-        logger.info('Fixed rates loaded successfully')
 
     async def load_float_rates(self):
         float_rates = await self.api_client.get_float_rates()
         await self._load_rates(float_rates, 'float')
-        logger.info('Float rates loaded successully')

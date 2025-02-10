@@ -2,13 +2,12 @@ import asyncio
 import base64
 import binascii
 import logging
-from typing import Optional
 
 import aiohttp
 from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 from Crypto.Signature import pkcs1_15
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from . import schemas
 from src.api.ffio.schemas import OrderType
@@ -19,32 +18,11 @@ from .changelly_redis_data import changelly_redis_client
 logger = logging.getLogger(__name__)
 
 
-class GetMinAmountParams(BaseModel):
-    from_currency: str = Field(..., alias="from")
-    to_currency: str = Field(..., alias="to")
-
-
-class GetExchangeAmountParams(GetMinAmountParams):
-    amount: float
-
-
-class CreateTransactionParams(GetExchangeAmountParams):
-    address: str
-    refund_address: str = Field(..., alias="refundAddress")
-
-
-class GetTransactionsParams(BaseModel):
-    currency: Optional[str] = None
-    limit: int = 10
-
-
 class ChangellyClient:
 
-    def __init__(self, private_key: str, x_api_key: str,
-                 timeout: int = 10) -> None:
+    def __init__(self, private_key: str, x_api_key: str) -> None:
         self.private_key = private_key
         self.x_api_key = x_api_key
-        self.timeout = aiohttp.ClientTimeout(total=timeout)
 
     def _sign_request(self, body: str) -> bytes:
         decoded_private_key = binascii.unhexlify(self.private_key)
@@ -71,7 +49,7 @@ class ChangellyClient:
 
         headers = self._get_headers(rpc_request.model_dump_json(
             by_alias=True, exclude_none=True))
-        async with aiohttp.ClientSession(timeout=self.timeout) as session:
+        async with aiohttp.ClientSession() as session:
             async with session.post(
                 'https://api.changelly.com/v2/',
                 headers=headers,
@@ -80,9 +58,7 @@ class ChangellyClient:
             ) as response:
                 if response.status != 200:
                     text = await response.text()
-                    print(text)
                     raise Exception(f"Changelly API error (HTTP {response.status}): {text}") # noqa
-                print(await response.text())
                 data = await response.json()
                 response_data = schemas.JsonRPCResponse(**data)
 

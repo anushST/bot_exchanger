@@ -1,8 +1,10 @@
+"""!!! Данный файл устарел, но некторые файлы связанны с ним"""
 import logging
 
 from redis.exceptions import RedisError
 
 from src.api.ffio import schemas
+from src.api.schemas import Coin
 from src.redis import redis_client
 
 logger = logging.getLogger(__name__)
@@ -33,7 +35,7 @@ class FFIORedisClient:
                          coin_name, e, exc_info=True)
 
     async def get_coin_full_info(self, coin_name: str,
-                                 network: str) -> schemas.Currency | None:
+                                 network: str) -> Coin | None:
         """Retrieve full information for a coin on a specific network."""
         coin_info = None
         try:
@@ -48,7 +50,7 @@ class FFIORedisClient:
             logger.error('Error fetching coin info for %s on network %s: %s',
                          coin_name, network, e, exc_info=True)
         if coin_info:
-            return schemas.Currency.model_validate_json(coin_info)
+            return Coin.model_validate_json(coin_info)
 
     async def _get_rate(self, rate_type: str, from_coin: str,
                         from_coin_network: str, to_coin: str,

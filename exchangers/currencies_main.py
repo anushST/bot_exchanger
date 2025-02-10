@@ -13,7 +13,7 @@ logging.basicConfig(
     format='%(asctime)s|%(name)s|%(levelname)s|%(message)s|',
     handlers=[
         logging.handlers.RotatingFileHandler(
-            'logs/currenciess.log', maxBytes=10*1024*1024, backupCount=5),
+            'logs/currenciess.log', maxBytes=500*1024*1024),
         logging.StreamHandler()
     ]
 )
@@ -44,7 +44,7 @@ async def main():
         except Exception as e:
             logger.error(f'Unexpected error in main loop: {e}', exc_info=True)
 
-        await asyncio.sleep(10)
+        await asyncio.sleep(60)
 
 
 if __name__ == '__main__':

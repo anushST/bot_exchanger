@@ -8,7 +8,7 @@ from typing import Optional
 
 import aiohttp
 import xmltodict
-from aiohttp import ClientError, ClientTimeout
+from aiohttp import ClientError
 from pydantic import BaseModel
 
 from . import schemas, constants as c
@@ -25,10 +25,9 @@ class FFIOClient:
     FIXED_RATES_URL = 'https://ff.io/rates/fixed.xml'
     FLOAT_RATES_URL = 'https://ff.io/rates/float.xml'
 
-    def __init__(self, key: str, secret: str, timeout: int = 10) -> None:
+    def __init__(self, key: str, secret: str) -> None:
         self.key = key
         self.secret = secret
-        self.timeout = ClientTimeout(total=timeout)
 
     def _sign(self, data: str) -> str:
         return hmac.new(self.secret.encode(), data.encode(),
@@ -37,7 +36,6 @@ class FFIOClient:
     async def _req(self, method: str,
                    data: Optional[BaseModel] = None) -> list[dict]:
         url = f'https://ff.io/api/v2/{method}'
-        logger.info(f'Sending request to {url} with data: {data}')
         req = data.model_dump_json(by_alias=True) if data else json.dumps({})
 
         headers = {
@@ -47,7 +45,7 @@ class FFIOClient:
             'Content-Type': 'application/json; charset=UTF-8',
         }
 
-        async with aiohttp.ClientSession(timeout=self.timeout) as session:
+        async with aiohttp.ClientSession() as session:
             retry_times = 1
             while retry_times < c.RETRY_TIMES:
                 try:
@@ -73,7 +71,7 @@ class FFIOClient:
     async def _get_rates(self, is_fixed=True) -> list[schemas.RatesSchema]:
         url = self.FIXED_RATES_URL if is_fixed else self.FLOAT_RATES_URL
         try:
-            async with aiohttp.ClientSession(timeout=self.timeout) as session:
+            async with aiohttp.ClientSession() as session:
                 async with session.get(url) as response:
                     xml_data = await response.text()
                     dict_data = xmltodict.parse(xml_data)
@@ -82,17 +80,25 @@ class FFIOClient:
             results = []
             for rate in rates:
                 tofee, tofee_cur = rate.get('tofee', '0 None').split()
+                max_from_amount = Decimal(rate['maxamount'].split()[0])
+                min_from_amount = Decimal(rate['minamount'].split()[0])
+                rate_value = Decimal(rate['out']) / Decimal(rate['in'])
+                min_to_amount = rate_value * min_from_amount
+                max_to_amount = rate_value * max_from_amount
+                if max_from_amount > Decimal(rate['amount']):
+                    max_from_amount = Decimal(rate['amount'])
                 results.append(
                     schemas.RatesSchema(
                         from_coin=rate['from'],
-                        to=rate['to'],
+                        to_coin=rate['to'],
                         in_amount=Decimal(rate['in']),
-                        out=Decimal(rate['out']),
-                        amount=Decimal(rate['amount']),
-                        tofee=Decimal(tofee) if tofee != 'None' else None,
-                        tofee_currency=tofee_cur,
-                        minamount=Decimal(rate['minamount'].split()[0]),
-                        maxamount=Decimal(rate['maxamount'].split()[0])
+                        out_amount=Decimal(rate['out']),
+                        to_network_fee=(
+                            Decimal(tofee) if tofee != 'None' else None),
+                        min_from_amount=min_from_amount,
+                        max_from_amount=max_from_amount,
+                        max_to_amount=max_to_amount,
+                        min_to_amount=min_to_amount
                     )
                 )
             return results

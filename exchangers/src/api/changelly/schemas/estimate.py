@@ -41,6 +41,10 @@ class FloatEstimate(BaseModel):
     rate: Decimal = Field(alias="rate")
     fee: Decimal = Field(alias="fee")
 
+    model_config = {
+        "populate_by_name": True,
+    }
+
 
 class FixedEstimate(BaseModel):
     id_: str = Field(alias="id")
@@ -57,3 +61,7 @@ class FixedEstimate(BaseModel):
     amount_from: Decimal = Field(alias="amountFrom")
     amount_to: Decimal = Field(alias="amountTo")
     expired_at: int = Field(alias="expiredAt")
+
+    model_config = {
+        "populate_by_name": True,
+    }

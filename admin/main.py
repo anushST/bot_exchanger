@@ -50,8 +50,8 @@ app.add_middleware(
 
 async def main():
     await init_db()
-    async with get_async_session_generator() as session:
-        await generate_transactions(session)
+    # async with get_async_session_generator() as session:
+    #     await generate_transactions(session)
 
     config = uvicorn.Config('main:app', host='0.0.0.0',
                             port=8002, reload=True, log_config=None)

@@ -1,6 +1,7 @@
 # flake8: noqa
 import asyncio
 import logging
+from src.enums import Exchangers
 from datetime import datetime
 
 from sqlalchemy.future import select
@@ -10,7 +11,7 @@ from src import exceptions as ex
 from src.api import exceptions as api_ex
 from src.api.ffio import schemas
 from src.api.ffio.ffio_client import ffio_client
-from src.api.ffio.ffio_redis_data import ffio_redis_client
+from src.api.coin_redis_data import coin_redis_data_client
 from src.database import get_session
 from src.models import (
     Transaction, TransactionStatuses)
@@ -74,7 +75,11 @@ class FFioTransaction:
         except Exception as e:
             logger.critical('Unhandled exception in transaction processing '
                             f'{self.transaction_id}: {e}', exc_info=True)
-            raise
+            async with get_session() as session:
+                    transaction.status = TransactionStatuses.ERROR.value
+                    transaction.status_code = tc.UNDEFINED_ERROR_CODE
+                    session.add(transaction)
+                    await session.commit()
 
     async def _get_transaction(self) -> Transaction | None:
         try:
@@ -93,11 +98,13 @@ class FFioTransaction:
     async def _handle_new(self, transaction: Transaction) -> None:
         try:
             try:
-                fromCcy = await ffio_redis_client.get_coin_full_info(
+                fromCcy = await coin_redis_data_client.get_coin_full_info(
+                    Exchangers.FFIO,
                     transaction.from_currency,
                     network=transaction.from_currency_network
                 )
-                toCcy = await ffio_redis_client.get_coin_full_info(
+                toCcy = await coin_redis_data_client.get_coin_full_info(
+                    Exchangers.FFIO,
                     transaction.to_currency,
                     network=transaction.to_currency_network
                 )
@@ -106,6 +113,14 @@ class FFioTransaction:
                              f'for transaction {self.transaction_id}: {e}',
                              exc_info=True)
                 raise
+            
+            if not fromCcy or not toCcy:
+                async with get_session() as session:
+                    transaction.status = TransactionStatuses.ERROR.value
+                    transaction.status_code = tc.UNDEFINED_ERROR_CODE
+                    session.add(transaction)
+                    await session.commit()
+                return
 
             data = schemas.CreateOrder(
                 type=transaction.rate_type,
@@ -138,6 +153,7 @@ class FFioTransaction:
                         transaction.status_code = error_status_code
                     else:
                         transaction.status = TransactionStatuses.CREATED.value
+                        transaction.status_code = tc.CREATED
 
                         transaction.transaction_id = response.id
                         transaction.transaction_token = response.token

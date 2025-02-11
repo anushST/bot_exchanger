@@ -9,8 +9,9 @@ from Crypto.PublicKey import RSA
 from Crypto.Signature import pkcs1_15
 from pydantic import BaseModel
 
-from . import schemas
+from . import schemas, constants as cnst
 from src.api.ffio.schemas import OrderType
+from src.api import exceptions as ex
 from src.transaction.schemas import CreateBestPrice, BestPrice
 from .changelly_redis_data import changelly_redis_client
 
@@ -180,6 +181,12 @@ class ChangellyClient:
             self, params: schemas.CreateFloatTransaction
             ) -> schemas.FloatTransaction:
         response = await self._request('createTransaction', params)
+        if response.error:
+            error_code = response.error.code
+            if error_code == cnst.INVALID_ADDRESS_CODE:
+                raise ex.InvalidAddressError('Address is invalid')
+            else:
+                raise ex.ClientError('Some error occured')
         print(response)
         return schemas.FloatTransaction(**response.result)
 
@@ -187,6 +194,13 @@ class ChangellyClient:
             self, params: schemas.CreateFixedTransaction
             ) -> schemas.FixedTransaction:
         response = await self._request('createFixTransaction', params)
+        if response.error:
+            error_code = response.error.code
+            if error_code == cnst.INVALID_ADDRESS_CODE:
+                raise ex.InvalidAddressError('Address is invalid')
+            else:
+                raise ex.ClientError('Some error occured')
+        print(response)
         return schemas.FixedTransaction(**response.result)
 
     async def get_transaction_details(

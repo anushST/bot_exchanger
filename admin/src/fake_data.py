@@ -25,7 +25,8 @@ def generate_random_transaction(user_id):
 
     return Transaction(
         name=generate_unique_name(length=6),
-        status=random.choice([status.value for status in TransactionStatuses]),
+        status=random.choice([status.value for status in TransactionStatuses
+                              if not status.value == 'new']),
         user_id=user_id,
         exchanger=random.choice(['Binance', 'Kraken', 'Coinbase', 'Huobi']),
         rate_type=random.choice([rate.value for rate in RateTypes]),

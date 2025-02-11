@@ -1,8 +1,23 @@
+from enum import Enum
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel, Field
+
+
+class ChangellyStatuses(Enum):
+    NEW = 'new'
+    WAITING = "waiting"  # Ожидание входящего платежа
+    CONFIRMING = "confirming"  # Получен платёж, ожидаем подтверждений
+    EXCHANGING = "exchanging"  # Платёж подтверждён, идёт обмен
+    SENDING = "sending"  # Монеты отправляются на адрес получателя
+    FINISHED = "finished"  # Монеты успешно отправлены
+    FAILED = "failed"  # Ошибка транзакции (например, сумма меньше минимальной)
+    REFUNDED = "refunded"  # Обмен не удался, монеты возвращены пользователю
+    HOLD = "hold"  # Задержка из-за AML/KYC проверки
+    OVERDUE = "overdue"  # Для плавающего курса: платёж не был отправлен вовремя  # noqa
+    EXPIRED = "expired"  # Для фиксированного курса: платёж не был отправлен вовремя # noqa
 
 
 class CreateTransactionDetails(BaseModel):
@@ -101,10 +116,10 @@ class TransactionDetails(BaseModel):
 class FloatTransaction(BaseModel):
     id_: str = Field(alias="id")
     type_: str = Field(alias="type")
-    payin_extra_id: Optional[str] = Field('', alias="payinExtraId")
-    payout_extra_id: Optional[str] = Field('', alias="payoutExtraId")
+    payin_extra_id: Optional[str] = Field(None, alias="payinExtraId")
+    payout_extra_id: Optional[str] = Field(None, alias="payoutExtraId")
     amount_expected_from: Decimal = Field(alias="amountExpectedFrom")
-    status: str
+    status: Optional[ChangellyStatuses] = None
     currency_from: str = Field(alias="currencyFrom")
     currency_to: str = Field(alias="currencyTo")
     amount_expected_to: Decimal = Field(alias="amountExpectedTo")
@@ -117,13 +132,14 @@ class FloatTransaction(BaseModel):
 class FixedTransaction(BaseModel):
     id_: str = Field(alias="id")
     type_: str = Field(alias="type")
-    status: str
+    status: Optional[ChangellyStatuses] = None
     pay_till: datetime = Field(alias="payTill")
     currency_from: str = Field(alias="currencyFrom")
     currency_to: str = Field(alias="currencyTo")
-    payin_extra_id: Optional[str] = Field('', alias="payinExtraId")
-    payout_extra_id: Optional[str] = Field('', alias="payoutExtraId")
+    payin_extra_id: Optional[str] = Field(None, alias="payinExtraId")
+    payout_extra_id: Optional[str] = Field(None, alias="payoutExtraId")
     refund_address: str = Field(alias="refundAddress")
+    refund_extra_id: Optional[str] = Field(None, alias='refundExtraId')
     amount_expected_from: Decimal = Field(alias="amountExpectedFrom")
     amount_expected_to: Decimal = Field(alias="amountExpectedTo")
     payin_address: str = Field(alias="payinAddress")

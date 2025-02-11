@@ -3,5 +3,6 @@ from .base import ErrorModel, JsonRPCRequest, JsonRPCResponse
 from .currencies import Coin, CoinPairs, PairParams, PairParamsData
 from .estimate import CreateFloatEstimate, CreateFixedEstimate, FloatEstimate, FixedEstimate
 from .transactions import (
+    ChangellyStatuses,
     CreateFloatTransaction, CreateFixedTransaction, CreateTransactionDetails,
     FloatTransaction, FixedTransaction, TransactionDetails)

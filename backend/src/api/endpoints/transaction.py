@@ -20,7 +20,8 @@ async def get_user_transactions(
 ):
     try:
         result = await session.execute(
-            select(Transaction).where(Transaction.user_id == '89d66996-2749-4072-ab32-3d791cfcd90a')
+            select(Transaction).where(
+                Transaction.user_id == '2597d58d-0e85-48c1-a179-9b627b2d0e5a')
             .order_by(Transaction.created_at.desc())
             .offset(offset)
             .limit(limit)
@@ -111,7 +112,7 @@ async def create_transaction(
         rate_type = data.rate_type
         refund_address = data.refund_address
 
-        if rate_type == RateTypes.FIXED.value:
+        if rate_type == RateTypes.FIXED:
             if not refund_address:
                 raise HTTPException(
                     status_code=400,
@@ -119,7 +120,7 @@ async def create_transaction(
                 )
 
         transaction = Transaction(
-            user_id='89d66996-2749-4072-ab32-3d791cfcd90a',
+            user_id='2597d58d-0e85-48c1-a179-9b627b2d0e5a',
             name=await Transaction.create_unique_name(session),
             rate_type=data.rate_type.value,
             from_currency=data.currency_from,

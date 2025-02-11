@@ -1,3 +1,4 @@
+# flake8: noqa
 import asyncio
 import logging
 from datetime import datetime
@@ -10,9 +11,10 @@ from src.api import exceptions as api_ex
 from src.api.changelly import schemas
 from src.api.changelly import changelly_client
 from src.api.changelly.changelly_redis_data import changelly_redis_client
+from src.enums import Exchangers
 from src.database import get_session
 from src.models import (
-    Transaction, TransactionStatuses, RateTypes)
+    DirectionTypes, Transaction, TransactionStatuses, RateTypes)
 
 logger = logging.getLogger(__name__)
 
@@ -23,65 +25,39 @@ class ChangellyTransaction:
         self.transaction_id = transaction_id
 
     async def process(self) -> None:
-        logger.info('Handled by changelly')
+        logger.debug('Handled by changelly')
         try:
-            sleep_time = 5
-            expired_retries = 0
-            while expired_retries < 60*24:
-                try:
-                    transaction = await self._get_transaction()
-                except ex.DatabaseError as e:
-                    logger.error('Database error while fetching transaction '
-                                 f'{self.transaction_id}: {e}', exc_info=True)
-                    break
+            try:
+                transaction = await self._get_transaction(self.transaction_id)
+            except ex.DatabaseError as e:
+                logger.error('Database error while fetching transaction '
+                             f'{self.transaction_id}: {e}', exc_info=True)
 
-                if not transaction:
-                    logger.warning(
-                        f'Transaction {self.transaction_id} not found.')
-                    break
+            if not transaction:
+                logger.warning(
+                    f'Transaction {self.transaction_id} not found.')
 
-                if transaction.status == TransactionStatuses.NEW:
-                    logger.error('Invalid transaction status NEW '
-                                 f'for {self.transaction_id}')
-                    break
+            if transaction.status == TransactionStatuses.NEW.value:
+                logger.error('Invalid transaction status NEW '
+                             f'for {self.transaction_id}')
 
-                stop_processing_statuses = (
-                    TransactionStatuses.DONE,
-                    TransactionStatuses.ERROR
-                )
-                if transaction.status in stop_processing_statuses:
-                    logger.info('Stopping processing for transaction '
-                                f'{self.transaction_id} with status '
-                                f'{transaction.status}')
-                    break
-
-                if transaction.status == TransactionStatuses.EXPIRED:
-                    sleep_time = 60
-                    expired_retries += 1
-
-                try:
-                    if transaction.status == TransactionStatuses.HANDLED:
-                        await self._handle_new(transaction)
-                    else:
-                        # await self._handle_handled(transaction)
-                        pass
-                except Exception as e:
-                    logger.error(f'Error during transaction processing '
-                                 f'{self.transaction_id}: {e}', exc_info=True)
-                    break
-
-                await asyncio.sleep(sleep_time)
+            try:
+                if transaction.status == TransactionStatuses.HANDLED.value:
+                    await self._handle_new(transaction)
+            except Exception as e:
+                logger.error('Error during transaction processing '
+                             f'{self.transaction_id}: {e}', exc_info=True)
         except Exception as e:
             logger.critical('Unhandled exception in transaction processing '
                             f'{self.transaction_id}: {e}', exc_info=True)
             raise
 
-    async def _get_transaction(self) -> Transaction | None:
+    async def _get_transaction(self, transaction_id) -> Transaction | None:
         try:
             async with get_session() as session:
                 result = await session.execute(
                     select(Transaction).where(
-                        Transaction.id == self.transaction_id)
+                        Transaction.id == transaction_id)
                 )
                 return result.scalars().first()
         except Exception as e:
@@ -111,34 +87,41 @@ class ChangellyTransaction:
             error_status_code = None
             try:
                 if transaction.rate_type == RateTypes.FIXED:
+                    amount_from = None
+                    amount_to = None
+                    if transaction.direction == DirectionTypes.FROM.value:
+                        amount_from = str(transaction.amount)
+                    elif transaction.direction == DirectionTypes.TO.value:
+                        amount_to = str(transaction.amount)
                     data = schemas.CreateFixedTransaction(
                         from_=fromCcy.code,
                         to=toCcy.code,
-                        rateId='hi',
+                        rateId='CipherSwap',
                         address=transaction.to_address,
-                        amountFrom=transaction.amount,
-                        refundAddress='hi there'
-                    )
-                    response = await changelly_client.create_fixed_transaction(
-                        data
+                        amount_from=amount_from,
+                        amount_to=amount_to,
+                        extraId=transaction.tag_value,
+                        refundAddress=transaction.refund_address,
+                        refundExtraId=transaction.refund_tag_value
                     )
                 else:
                     data = schemas.CreateFloatTransaction(
                         from_=fromCcy.code,
                         to=toCcy.code,
                         address=transaction.to_address,
-                        amountFrom=str(transaction.amount)
+                        extraId=transaction.tag_value,
+                        amountFrom=str(transaction.amount),
                     )
-                    response = await changelly_client.create_float_transaction(
-                        data
-                    )
+                response = await changelly_client.create_float_transaction(
+                    data
+                )
                 logger.info(response)
             except api_ex.InvalidAddressError:
                 error_status_code = tc.INVALID_ADDRESS_CODE
             except api_ex.OutOFLimitisError:
                 error_status_code = tc.OUT_OF_LIMITS_CODE
             except Exception as e:
-                logger.error('Error from FFIO client during order creation '
+                logger.error('Error Changelly client during order creation '
                              f'for transaction {self.transaction_id}: {e}',
                              exc_info=True)
                 error_status_code = tc.UNDEFINED_ERROR_CODE
@@ -146,19 +129,46 @@ class ChangellyTransaction:
             try:
                 async with get_session() as session:
                     if error_status_code:
-                        transaction.status = TransactionStatuses.ERROR
-                        transaction.is_status_showed = False
+                        transaction.status = TransactionStatuses.ERROR.value
                         transaction.status_code = error_status_code
+                    elif (response.currency_from != fromCcy.code
+                          and response.currency_to != toCcy.code):
+                        transaction.status = TransactionStatuses.ERROR.value
+                        transaction.status_code = tc.UNDEFINED_ERROR_CODE
                     else:
-                        transaction.status = TransactionStatuses.CREATED
-                        transaction.is_status_showed = False
-
+                        transaction.status = TransactionStatuses.CREATED.value
+                        transaction.status_code = tc.CREATED
+                        transaction.exchanger = Exchangers.CHANGELLY.value
                         transaction.transaction_id = response.id_
                         transaction.transaction_token = ''
-                        transaction.final_rate_type = 'float'
-                        transaction.time_registred = datetime.now() # noqa
-                        transaction.time_expiration = datetime.now()
 
+                        transaction.final_rate_type = response.type_
+                        transaction.time_registred = datetime.fromtimestamp(response.created_at / 1_000_000) # noqa
+
+                        # Final from
+                        transaction.final_from_currency = transaction.from_currency # noqa
+                        transaction.final_from_network = transaction.from_currency_network# noqa
+                        transaction.final_from_amount = response.amount_expected_from # noqa
+                        transaction.final_from_address = response.payin_address # noqa
+                        transaction.final_from_tag_name = 'Memo/Comment/ID' if response.payin_extra_id else None # noqa
+                        transaction.final_from_tag_value = response.payin_extra_id # noqa
+
+                        # Final to
+                        transaction.final_to_currency = transaction.to_currency
+                        transaction.final_to_network = transaction.to_currency_network # noqa
+                        transaction.final_to_amount = response.amount_expected_to # noqa
+                        transaction.final_to_address = response.payout_address
+                        transaction.final_to_tag_name = 'Memo/Comment/ID' if response.payout_extra_id else None # noqa
+                        transaction.final_to_tag_value = response.payout_extra_id # noqa
+
+                        # Final back
+                        if response.type_ != RateTypes.FLOAT.value:
+                            transaction.final_back_currency = transaction.from_currency # noqa
+                            transaction.final_back_network = transaction.from_currency_network # 
+                            transaction.final_back_amount = response.amount_expected_from
+                            transaction.final_back_address = response.refund_address # noqa
+                            transaction.final_back_tag_name = 'Memo/Comment/ID' if response.refund_extra_id else None # noqa
+                            transaction.final_back_tag_value = response.refund_extra_id # noqa
                     session.add(transaction)
                     await session.commit()
                     await session.refresh(transaction)
@@ -177,84 +187,95 @@ class ChangellyTransaction:
                          f'{self.transaction_id}: {e}', exc_info=True)
             raise
 
-    async def _handle_handled(self, transaction: Transaction) -> None:
-        try:
-            data = schemas.CreateOrderDetails(
-                id=transaction.transaction_id,
-                token=transaction.transaction_token
-            )
-
-            try:
-                response = await ffio_client.order(data)
-                logger.info(response)
-            except Exception as e:
-                logger.error('Error from FFIO client during order retrieval '
-                             f'for transaction {self.transaction_id}: {e}',
-                             exc_info=True)
-                return
-
-            if not response:
-                logger.error('Empty response from FFIO client for '
-                             f'transaction {self.transaction_id}')
-                return
-
-            status_mapping = {
-                schemas.OrderStatus.NEW: TransactionStatuses.CREATED,
-                schemas.OrderStatus.PENDING: TransactionStatuses.PENDING,
-                schemas.OrderStatus.EXCHANGE: TransactionStatuses.EXCHANGE,
-                schemas.OrderStatus.WITHDRAW: TransactionStatuses.WITHDRAW,
-                schemas.OrderStatus.DONE: TransactionStatuses.DONE,
-                schemas.OrderStatus.EXPIRED: TransactionStatuses.EXPIRED,
-                schemas.OrderStatus.EMERGENCY: TransactionStatuses.EMERGENCY,
-            }
-
-            new_status = status_mapping.get(response.status)
-            if new_status is None:
-                logger.error('Unknown status retrieved for transaction '
-                             f'{self.transaction_id}: {response.status}')
-                raise ValueError('Unknown transaction status received')
-
+    @staticmethod
+    async def observer_process() -> None:
+        logger.info('Changelly processor started')
+        while True:
             try:
                 async with get_session() as session:
-                    if new_status != transaction.status:
-                        transaction.status = new_status
-                        transaction.is_status_showed = False
-                        logger.info(f'Transaction {self.transaction_id} updated to ' # noqa
-                                    f'status {new_status}.')
-                    # from
-                    transaction.received_from_id = response.from_info.tx.id
-                    transaction.received_from_amount = response.from_info.tx.amount # noqa
-                    transaction.received_from_confirmations = response.from_info.tx.confirmations # noqa
-                    # to
-                    transaction.received_to_id = response.to_info.tx.id
-                    transaction.received_to_amount = response.to_info.tx.amount # noqa
-                    transaction.received_to_confirmations = response.to_info.tx.confirmations # noqa
-                    # back
-                    transaction.final_back_currency = response.back_info.coin
-                    transaction.final_back_network = response.back_info.network
-                    transaction.final_back_address = response.back_info.address
-                    transaction.final_back_tag_name = response.back_info.tag_name # noqa
-                    transaction.final_back_tag_value = response.back_info.tag_value # noqa
-                    transaction.received_back_id = response.back_info.tx.id
-                    transaction.received_back_amount = response.back_info.tx.amount # noqa
-                    transaction.received_back_confirmations = response.back_info.tx.confirmations # noqa
-                    # emergency
-                    transaction.set_emergency_statuses(response.emergency.status) # noqa
-
-                    session.add(transaction)
-                    await session.commit()
-                    await session.refresh(transaction)
+                    result = await session.execute(
+                        select(Transaction)
+                        .where(Transaction.exchanger == Exchangers.CHANGELLY.value)
+                        .where(~Transaction.status.in_([
+                            TransactionStatuses.NEW.value,
+                            TransactionStatuses.ERROR.value,
+                            TransactionStatuses.HANDLED.value,
+                            TransactionStatuses.DONE.value
+                        ]))
+                    )
+                    transactions = result.scalars().all()
+                    print(len(transactions))
             except Exception as e:
-                logger.error(f'Error retrieving transaction '
-                             f'{self.transaction_id} '
-                             f'from database: {e}', exc_info=True)
+                logger.error(f'Error occured')
                 raise ex.DatabaseError(
                     'Error accessing transaction database') from e
-            if (new_status == TransactionStatuses.EMERGENCY
-                    and not transaction.is_emergency_handled):
-                await self._handle_emergency()
 
-        except Exception as e:
-            logger.error('Error handling HANDLED transaction '
-                         f'{self.transaction_id}: {e}', exc_info=True)
-            raise
+            ids = [tr.transaction_id for tr in transactions]
+
+            responses: list[schemas.TransactionDetails] = []
+            for i in range(0, len(ids), 50):
+                batch_ids = ids[i:i+50]
+                response = await changelly_client.get_transaction_details(
+                    schemas.CreateTransactionDetails(id=batch_ids, limit=60)
+                )
+                responses.extend(response)
+
+            for response in responses:
+                try:
+                    async with get_session() as session:
+                        result = await session.execute(
+                            select(Transaction)
+                            .where(Transaction.transaction_id == response.id_)
+                            .where(Transaction.exchanger == Exchangers.CHANGELLY.value) # noqa
+                        )
+                        transaction = result.scalars().first()
+                    print(transaction.id)
+                    if not response:
+                        logger.error('No such transaction')
+                        return
+
+                    status_mapping = {
+                        schemas.ChangellyStatuses.WAITING: TransactionStatuses.CREATED.value, # noqa
+                        schemas.ChangellyStatuses.CONFIRMING: TransactionStatuses.PENDING.value, # noqa
+                        schemas.ChangellyStatuses.EXCHANGING: TransactionStatuses.EXCHANGE.value, # noqa
+                        schemas.ChangellyStatuses.SENDING: TransactionStatuses.WITHDRAW.value, # noqa
+                        schemas.ChangellyStatuses.FINISHED: TransactionStatuses.DONE.value, # noqa
+                        schemas.ChangellyStatuses.EXPIRED: TransactionStatuses.EXPIRED.value, # noqa
+                        schemas.ChangellyStatuses.FAILED: TransactionStatuses.EMERGENCY.value, # noqa
+                        schemas.ChangellyStatuses.HOLD: TransactionStatuses.EMERGENCY.value, # noqa
+                        schemas.ChangellyStatuses.OVERDUE: TransactionStatuses.EMERGENCY.value, # noqa
+                    }
+
+                    new_status = status_mapping.get(schemas.ChangellyStatuses(response.status))
+                    if new_status is None:
+                        logger.error('Unknown status retrieved for transaction '
+                                     f'{transaction.id}: {response.status}')
+                        raise ValueError('Unknown ransaction status received')
+
+                    try:
+                        async with get_session() as session:
+                            if new_status != transaction.status:
+                                transaction.status = new_status
+                                logger.info(f'Transaction {transaction.id} updated to ' # noqa
+                                            f'status {new_status}.')
+                            # from
+                            transaction.received_from_id = response.payin_hash
+                            transaction.received_from_amount = response.amount_from# noqa
+                            transaction.received_from_confirmations = response.payin_confirmations # noqa
+                            # to
+                            transaction.received_to_id = response.payout_hash
+                            transaction.received_to_amount = response.amount_to # noqa
+                            transaction.received_to_confirmations = 0 # noqa
+                            # back
+                            transaction.received_back_id = response.refund_hash
+
+                            session.add(transaction)
+                            await session.commit()
+                            await session.refresh(transaction)
+                    except Exception as e:
+                        raise ex.DatabaseError(
+                            'Error accessing transaction database') from e
+                except Exception as e:
+                    logger.error('Error handling HANDLED transaction', exc_info=True)
+                    raise
+            await asyncio.sleep(5)

@@ -3,7 +3,7 @@ import logging
 from redis.exceptions import RedisError
 
 from src.api.schemas import Coin, RatesSchema
-from src.enums import Exchangers
+from src.enums import Exchangers, RateLoadedExchangers
 from src.redis import redis_client
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,25 @@ class CoinRedisDataClient:
         if coin_info:
             return Coin.model_validate_json(coin_info)
 
-    async def _get_rate(self, rate_type: str, exchanger: Exchangers,
+    async def get_coin_info(self, coin_name: str, network: str):
+        exchangers = list(Exchangers)
+
+        coin = Coin()
+        for ex in exchangers:
+            coin_info = await self.get_coin_full_info(
+                ex, coin_name, network
+            )
+            if not coin_info:
+                continue
+            coin.coin = coin_info.coin if not coin.coin else coin.coin
+            coin.code = coin_info.code if not coin.code else coin.coin
+            coin.network = coin_info.network if not coin.network else coin.coin
+            coin.receive = coin_info.receive if not coin.receive else coin.coin
+            coin.send = coin_info.send if not coin.send else coin.coin
+            coin.tag_name = coin_info.tag_name if not coin.tag_name else coin
+        return coin
+
+    async def _get_rate(self, rate_type: str, exchanger: RateLoadedExchangers,
                         from_coin: str,
                         from_coin_network: str, to_coin: str,
                         to_coin_network: str) -> RatesSchema | None:
@@ -62,8 +80,6 @@ class CoinRedisDataClient:
                 exchanger, to_coin, to_coin_network)
 
             if not from_coin_info or not to_coin_info:
-                logger.warning('Missing coin information for %s or %s.',
-                               from_coin, to_coin)
                 return None
 
             rate = await redis_client.get(
@@ -76,13 +92,15 @@ class CoinRedisDataClient:
             )
             if not rate:
                 return None
-            return RatesSchema.model_validate_json(rate)
+            rate = RatesSchema.model_validate_json(rate)
+            if rate.validate_set_at():
+                return rate
         except RedisError as e:
             logger.error('Error fetching exchange rate %s: %s',
                          rate_type, e, exc_info=True)
 
     async def get_fixed_rate(
-            self, exchanger: Exchangers, from_coin: str,
+            self, exchanger: RateLoadedExchangers, from_coin: str,
             from_coin_network: str,
             to_coin: str, to_coin_network: str) -> RatesSchema | None:
         """Retrieve fixed exchange rate between two coins."""
@@ -91,7 +109,7 @@ class CoinRedisDataClient:
                                     to_coin, to_coin_network)
 
     async def get_float_rate(
-            self, exchanger: Exchangers, from_coin: str,
+            self, exchanger: RateLoadedExchangers, from_coin: str,
             from_coin_network: str,
             to_coin: str, to_coin_network: str) -> RatesSchema | None:
         """Retrieve floating exchange rate between two coins."""
@@ -101,10 +119,11 @@ class CoinRedisDataClient:
 
     async def get_fixed_best_rate(self, from_coin: str, from_coin_network: str,
                                   to_coin: str, to_coin_network: str
-                                  ) -> RatesSchema:
-        exchangers = list(Exchangers)
+                                  ) -> list[str, RatesSchema]:
+        exchangers = list(RateLoadedExchangers)
         best_rate = 0
         rate_obj = None
+        exchanger = None
         for ex in exchangers:
             rate_datas = await self.get_fixed_rate(
                 ex, from_coin, from_coin_network, to_coin, to_coin_network
@@ -114,14 +133,16 @@ class CoinRedisDataClient:
                 if rate > best_rate:
                     best_rate = rate
                     rate_obj = rate_datas
-        return rate_obj
+                    exchanger = ex.value
+        return [exchanger, rate_obj] if exchanger and rate_obj else []
 
     async def get_float_best_rate(self, from_coin: str, from_coin_network: str,
                                   to_coin: str, to_coin_network: str
-                                  ) -> RatesSchema:
-        exchangers = list(Exchangers)
+                                  ) -> list[str, RatesSchema]:
+        exchangers = list(RateLoadedExchangers)
         best_rate = 0
         rate_obj = None
+        exchanger = None
         for ex in exchangers:
             rate_datas = await self.get_float_rate(
                 ex, from_coin, from_coin_network, to_coin, to_coin_network
@@ -131,7 +152,8 @@ class CoinRedisDataClient:
                 if rate > best_rate:
                     best_rate = rate
                     rate_obj = rate_datas
-        return rate_obj
+                    exchanger = ex.value
+        return [exchanger, rate_obj] if exchanger and rate_obj else []
 
     async def get_coin_in_usdt(self, coin, network) -> RatesSchema:
         networks_usdt = await coin_redis_data_client.get_networks('USDT')

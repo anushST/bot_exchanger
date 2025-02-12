@@ -8,7 +8,7 @@ changelly = LoadChangellyDataToRedis()
 
 
 async def currencies_and_networks():
-    # !!! Make note that all data deletes in ffio loader, so in other
+    # !!! Make note that all previouse data deletes in ffio loader, so in other
     # loaders just add values
     await ffio.load_currencies_and_networks()
     await changelly.load_currencies_and_networks()

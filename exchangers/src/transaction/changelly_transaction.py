@@ -10,6 +10,7 @@ from src import exceptions as ex
 from src.api import exceptions as api_ex
 from src.api.changelly import schemas
 from src.api.changelly import changelly_client
+from src.api.coin_redis_data import coin_redis_data_client
 from src.api.changelly.changelly_redis_data import changelly_redis_client
 from src.enums import Exchangers
 from src.database import get_session
@@ -69,11 +70,13 @@ class ChangellyTransaction:
     async def _handle_new(self, transaction: Transaction) -> None:
         try:
             try:
-                fromCcy = await changelly_redis_client.get_coin_full_info(
+                fromCcy = await coin_redis_data_client.get_coin_full_info(
+                    Exchangers.CHANGELLY,
                     transaction.from_currency,
                     network=transaction.from_currency_network
                 )
-                toCcy = await changelly_redis_client.get_coin_full_info(
+                toCcy = await coin_redis_data_client.get_coin_full_info(
+                    Exchangers.CHANGELLY,
                     transaction.to_currency,
                     network=transaction.to_currency_network
                 )
@@ -82,6 +85,14 @@ class ChangellyTransaction:
                              f'for transaction {self.transaction_id}: {e}',
                              exc_info=True)
                 raise
+
+            if not fromCcy or not toCcy:
+                async with get_session() as session:
+                    transaction.status = TransactionStatuses.ERROR.value
+                    transaction.status_code = tc.UNDEFINED_ERROR_CODE
+                    session.add(transaction)
+                    await session.commit()
+                return
 
             response = None
             error_status_code = None
@@ -128,6 +139,7 @@ class ChangellyTransaction:
                 raise
             try:
                 async with get_session() as session:
+                    transaction.exchanger = Exchangers.CHANGELLY.value
                     if error_status_code:
                         transaction.status = TransactionStatuses.ERROR.value
                         transaction.status_code = error_status_code
@@ -204,7 +216,6 @@ class ChangellyTransaction:
                         ]))
                     )
                     transactions = result.scalars().all()
-                    print(len(transactions))
             except Exception as e:
                 logger.error(f'Error occured')
                 raise ex.DatabaseError(
@@ -229,7 +240,6 @@ class ChangellyTransaction:
                             .where(Transaction.exchanger == Exchangers.CHANGELLY.value) # noqa
                         )
                         transaction = result.scalars().first()
-                    print(transaction.id)
                     if not response:
                         logger.error('No such transaction')
                         return
@@ -278,4 +288,4 @@ class ChangellyTransaction:
                 except Exception as e:
                     logger.error('Error handling HANDLED transaction', exc_info=True)
                     raise
-            await asyncio.sleep(5)
+            await asyncio.sleep(10)

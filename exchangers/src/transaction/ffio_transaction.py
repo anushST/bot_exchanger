@@ -151,9 +151,11 @@ class FFioTransaction:
                     if error_status_code:
                         transaction.status = TransactionStatuses.ERROR.value
                         transaction.status_code = error_status_code
+                        transaction.exchanger = Exchangers.FFIO.value
                     else:
                         transaction.status = TransactionStatuses.CREATED.value
                         transaction.status_code = tc.CREATED
+                        transaction.exchanger = Exchangers.FFIO.value
 
                         transaction.transaction_id = response.id
                         transaction.transaction_token = response.token

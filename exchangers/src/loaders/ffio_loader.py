@@ -90,7 +90,7 @@ class LoadFFIODataToRedis:
                     from_coin=rate.from_coin,
                     to_coin=rate.to_coin
                 ),
-                rate.model_dump_json(by_alias=True)
+                rate.model_dump_json()
             )
 
     async def load_fixed_rates(self):

@@ -1,2 +1,3 @@
 from .ffio_loader import LoadFFIODataToRedis
 from .changelly_loader import LoadChangellyDataToRedis
+from .easybit_loader import LoadEasyBitDataToRedis

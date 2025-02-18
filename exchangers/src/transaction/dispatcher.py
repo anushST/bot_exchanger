@@ -4,6 +4,7 @@ import logging
 from . import transaction_codes as tc
 from .ffio_transaction import FFioTransaction
 from .changelly_transaction import ChangellyTransaction
+from .easybit_transaction import EasyBitTransaction
 from src.api import rate_data
 from src.database import get_session
 from src.enums import Exchangers
@@ -17,7 +18,8 @@ class TransactionDispatcher:
 
     transaction_mapping = {
         Exchangers.CHANGELLY.value: ChangellyTransaction,
-        Exchangers.FFIO.value: FFioTransaction
+        Exchangers.FFIO.value: FFioTransaction,
+        Exchangers.EASYBIT.value: EasyBitTransaction
     }
 
     def __init__(self) -> None:

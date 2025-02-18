@@ -7,6 +7,10 @@ class Config(BaseSettings):
     DATABASE_URL: str
     FFIO_APIKEY: str
     FFIO_SECRET: str
+    EASYBIT_API_KEY: str
+    ADMIN_TOKEN: str
+    DOMAIN: str
+    TOKEN: str
 
     REDIS_HOST: Optional[str] = 'localhost'
     REDIS_PORT: Optional[str] = '6379'

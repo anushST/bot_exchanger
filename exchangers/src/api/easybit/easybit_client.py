@@ -10,7 +10,7 @@ load_dotenv()  # Загружаем переменные окружения из
 from . import constants as const
 from .schemas.currencies_list import CurrencyListResponse
 from .schemas.order import CreateOrderRequest, OrderResponse, OrderStatusResponse
-from .schemas.rates import PairListResponse, PairInfoResponse
+from .schemas.rates import PairListResponse, PairInfoResponse, RateResponse
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class EasyBitClient:
         if not self.api_key:
             raise ValueError("Не задан API ключ. Проверьте переменную окружения EASYBIT_API_KEY.")
         self.base_url = "https://api.easybit.com"
-        self.timeout = aiohttp.ClientTimeout(total=10)
+        self.timeout = aiohttp.ClientTimeout(total=30)
 
     async def _request(
         self,
@@ -38,9 +38,12 @@ class EasyBitClient:
                     async with session.request(
                         method=method, url=url, headers=headers, params=params, json=data
                     ) as response:
+                        if response.status == 400:
+                            # Возвращаем ответ для обработки в вызывающем коде
+                            return await response.json()
                         response.raise_for_status()
                         return await response.json()
-                except ClientError as e:
+                except aiohttp.ClientError as e:
                     logger.warning(f"Request error: {e}, attempt {attempt + 1}")
                     if attempt == const.MAX_RETRIES - 1:
                         raise
@@ -96,17 +99,7 @@ class EasyBitClient:
         receive_network: Optional[str] = None,
         amount_type: Optional[str] = None,
         extra_fee_override: Optional[float] = None,
-    ) -> Dict[str, Any]:
-        """
-        Получить обменный курс для указанной пары.
-        :param send: Валюта для отправки.
-        :param receive: Валюта для получения.
-        :param amount: Сумма для отправки.
-        :param send_network: Сеть для отправки (опционально).
-        :param receive_network: Сеть для получения (опционально).
-        :param amount_type: Тип суммы ("send" или "receive") (опционально).
-        :param extra_fee_override: Переопределение дополнительной комиссии (опционально).
-        """
+    ) -> RateResponse:
         params = {
             "send": send,
             "receive": receive,
@@ -121,7 +114,8 @@ class EasyBitClient:
         if extra_fee_override is not None:
             params["extraFeeOverride"] = extra_fee_override
 
-        return await self._request("GET", "/rate", params=params)
+        response = await self._request("GET", "/rate", params=params)
+        return RateResponse(**response)
 
     async def create_order(self, order_data: CreateOrderRequest) -> OrderResponse:
         response = await self._request("POST", "/order", data=order_data.model_dump())

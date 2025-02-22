@@ -1,4 +1,4 @@
-from typing import List
+from typing import List,Optional
 from pydantic import BaseModel, Field
 
 class PairListResponse(BaseModel):
@@ -9,36 +9,37 @@ class PairListResponse(BaseModel):
         allow_population_by_field_name = True
 
 class PairInfoData(BaseModel):
-    minimum_amount: str = Field(..., alias="minimumAmount")
-    maximum_amount: str = Field(..., alias="maximumAmount")
-    network_fee: str = Field(..., alias="networkFee")
-    confirmations: int
-    processing_time: str = Field(..., alias="processingTime")
-
-    class Config:
-        allow_population_by_field_name = True
+    minimumAmount: Optional[str] = Field(None, alias="minimumAmount")
+    maximumAmount: Optional[str] = Field(None, alias="maximumAmount")
+    networkFee: Optional[str] = Field(None, alias="networkFee")
+    confirmations: Optional[int] = None
+    processingTime: Optional[str] = Field(None, alias="processingTime")
+    # Поля для ошибок
+    currency: Optional[str] = None
+    network: Optional[str] = None
+    side: Optional[str] = None
 
 class PairInfoResponse(BaseModel):
     success: int
-    data: PairInfoData
+    errorCode: Optional[int] = None
+    errorMessage: Optional[str] = None
+    data: Optional[PairInfoData] = None
 
-    class Config:
-        allow_population_by_field_name = True
 
 class RateData(BaseModel):
-    rate: str
-    send_amount: str = Field(..., alias="sendAmount")
-    receive_amount: str = Field(..., alias="receiveAmount")
-    network_fee: str = Field(..., alias="networkFee")
-    confirmations: int
-    processing_time: str = Field(..., alias="processingTime")
-
-    class Config:
-        allow_population_by_field_name = True
+    rate: Optional[str] = None
+    sendAmount: Optional[str] = None
+    receiveAmount: Optional[str] = None
+    networkFee: Optional[str] = None
+    confirmations: Optional[int] = None
+    processingTime: Optional[str] = None
+    # Поля для ошибок
+    currency: Optional[str] = None
+    network: Optional[str] = None
+    side: Optional[str] = None
 
 class RateResponse(BaseModel):
     success: int
-    data: RateData
-
-    class Config:
-        allow_population_by_field_name = True
+    errorCode: Optional[int] = None
+    errorMessage: Optional[str] = None
+    data: Optional[RateData] = None

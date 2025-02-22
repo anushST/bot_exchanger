@@ -2,6 +2,7 @@ import logging
 from decimal import Decimal
 
 from src.api.changelly import changelly_client, schemas as changelly_schemas
+from src.api.easybit import easybit_client, schemas as easybit_schemas
 from src.api.coin_redis_data import coin_redis_data_client
 from src.api.schemas import RatesSchema
 from src.enums import Exchangers
@@ -29,7 +30,7 @@ async def get_fixed_best_rate(
         best_rate_obj = cached_rate[1]
         exchanger = cached_rate[0]
 
-    providers = [Exchangers.CHANGELLY]
+    providers = [Exchangers.CHANGELLY, Exchangers.EASYBIT]
 
     for provider in providers:
         from_coin_info = await coin_redis_data_client.get_coin_full_info(
@@ -42,22 +43,26 @@ async def get_fixed_best_rate(
         if not from_coin_info or not to_coin_info:
             continue
 
-        rate_obj = await changelly_client.get_fixed_rate(
-            changelly_schemas.CreateRate(
-                from_coin=from_coin_info.code,
-                to_coin=to_coin_info.code
+        if provider == Exchangers.CHANGELLY:
+            rate_obj = await changelly_client.get_fixed_rate(
+                changelly_schemas.CreateRate(
+                    from_coin=from_coin_info.code,
+                    to_coin=to_coin_info.code
+                )
             )
-        )
-
-        if not rate_obj:
-            continue
+        elif provider == Exchangers.EASYBIT:
+            rate_obj = await easybit_client.get_rate(
+                send=from_coin_info.code,
+                receive=to_coin_info.code,
+                amount=1.0  # Примерное значение, может быть изменено в зависимости от API
+            )
 
         rate = get_rate(rate_obj)
 
         if rate and (best_rate is None or rate > best_rate):
             best_rate = rate
-            exchanger = provider.value
             best_rate_obj = rate_obj
+            exchanger = provider.value
 
     return [exchanger, best_rate_obj] if best_rate_obj else best_rate_obj
 
@@ -77,7 +82,7 @@ async def get_float_best_rate(
         best_rate_obj = cached_rate[1]
         exchanger = cached_rate[0]
 
-    providers = [Exchangers.CHANGELLY]
+    providers = [Exchangers.CHANGELLY, Exchangers.EASYBIT]
 
     for provider in providers:
         from_coin_info = await coin_redis_data_client.get_coin_full_info(
@@ -90,12 +95,19 @@ async def get_float_best_rate(
         if not from_coin_info or not to_coin_info:
             continue
 
-        rate_obj = await changelly_client.get_float_rate(
-            changelly_schemas.CreateRate(
-                from_coin=from_coin_info.code,
-                to_coin=to_coin_info.code
+        if provider == Exchangers.CHANGELLY:
+            rate_obj = await changelly_client.get_float_rate(
+                changelly_schemas.CreateRate(
+                    from_coin=from_coin_info.code,
+                    to_coin=to_coin_info.code
+                )
             )
-        )
+        elif provider == Exchangers.EASYBIT:
+            rate_obj = await easybit_client.get_rate(
+                send=from_coin_info.code,
+                receive=to_coin_info.code,
+                amount=1.0  # Примерное значение, может быть изменено в зависимости от API
+            )
 
         rate = get_rate(rate_obj)
 

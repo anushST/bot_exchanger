@@ -65,7 +65,7 @@ class CoinRedisDataClient:
             coin.network = coin_info.network if not coin.network else coin.coin
             coin.receive = coin_info.receive if not coin.receive else coin.coin
             coin.send = coin_info.send if not coin.send else coin.coin
-            coin.tag_name = coin_info.tag_name if not coin.tag_name else coin
+            coin.tag_name = coin_info.tag_name if not coin.tag_name else coin.coin # noqa
         return coin
 
     async def _get_rate(self, rate_type: str, exchanger: RateLoadedExchangers,

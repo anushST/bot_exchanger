@@ -1,6 +1,6 @@
 from enum import Enum
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 
 class OrderStatusEnum(str, Enum):
     AWAITING_DEPOSIT = "Awaiting Deposit"
@@ -14,10 +14,13 @@ class OrderStatusEnum(str, Enum):
     ACTION_REQUEST = "Action Request"
     REQUEST_OVERDUE = "Request Overdue"
 
+class OrderStatusRequest(BaseModel):
+    order_id: str
+
 class CreateOrderRequest(BaseModel):
     send: str
     receive: str
-    amount: str  
+    amount: float  
     receive_address: str = Field(alias="receiveAddress")
     payload: Optional[str] = None
     user_device_id: Optional[str] = Field(alias="userDeviceId", default=None)
@@ -65,3 +68,7 @@ class OrderStatusData(BaseModel):
 class OrderStatusResponse(BaseModel):
     success: int
     data: OrderStatusData
+
+class OrdersListResponse(BaseModel):
+    success: int
+    data: List[OrderData]

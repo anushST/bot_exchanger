@@ -18,8 +18,9 @@ class NetworkInfo(BaseModel):
     contract_address: Optional[str] = Field(alias="contractAddress", default=None)
     explorer_contract: Optional[str] = Field(alias="explorerContract", default=None)
 
-    class Config:
-        allow_population_by_field_name = True
+    model_config = {
+        "populate_by_name": True
+    }
 
 class Currency(BaseModel):
     currency: str
@@ -28,12 +29,14 @@ class Currency(BaseModel):
     receive_status_all: bool = Field(alias="receiveStatusAll")
     network_list: List[NetworkInfo] = Field(alias="networkList")
 
-    class Config:
-        allow_population_by_field_name = True
+    model_config = {
+        "populate_by_name": True
+    }
 
 class CurrencyListResponse(BaseModel):
     success: int
     data: List[Currency]
 
-    class Config:
-        allow_population_by_field_name = True
+    model_config = {
+        "populate_by_name": True
+    }

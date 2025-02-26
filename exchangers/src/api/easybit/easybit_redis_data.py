@@ -1,9 +1,11 @@
 import logging
-from redis.exceptions import RedisError
+from redis.exceptions import RedisError as LibRedisError
+from pydantic import ValidationError
 
 from src.api.easybit import schemas
 from src.api.schemas import Coin
 from src.redis import redis_client
+from src.api.exceptions import RedisError, RedisDataError
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +21,9 @@ class EasybitRedisClient:
         """Получить множество доступных монет."""
         try:
             return await redis_client.smembers(self.COINS_KEY)
-        except RedisError as e:
+        except LibRedisError as e:
             logger.error('Error fetching coin list: %s', e, exc_info=True)
+            raise RedisError(f'Ошибка при получении списка монет: {e}')
 
     async def get_networks(self, coin: str) -> set[str] | None:
         """Получить множество сетей для заданной монеты."""
@@ -29,13 +32,13 @@ class EasybitRedisClient:
                 self.COIN_NETWORKS.format(coin=coin)
             )
             return networks
-        except RedisError as e:
+        except LibRedisError as e:
             logger.error('Error fetching networks for coin %s: %s',
                          coin, e, exc_info=True)
+            raise RedisError(f'Ошибка при получении сетей для монеты {coin}: {e}')
 
     async def get_coin_full_info(self, coin: str, network: str) -> Coin | None:
         """Получить полную информацию по монете на указанной сети."""
-        coin_info = None
         try:
             coin_info = await redis_client.get(
                 self.FULL_COIN_INFO_KEY.format(
@@ -43,14 +46,23 @@ class EasybitRedisClient:
                     network=network
                 )
             )
-        except RedisError as e:
+            if not coin_info:
+                return None
+                
+            try:
+                return Coin.model_validate_json(coin_info)
+            except ValidationError as e:
+                logger.error('Error validating coin data for %s on network %s: %s',
+                            coin, network, e, exc_info=True)
+                raise RedisDataError(f'Ошибка валидации данных монеты {coin} в сети {network}: {e}')
+                
+        except LibRedisError as e:
             logger.error('Error fetching info for coin %s on network %s: %s',
                          coin, network, e, exc_info=True)
-        if coin_info:
-            return Coin.model_validate_json(coin_info)
+            raise RedisError(f'Ошибка при получении информации о монете {coin} в сети {network}: {e}')
 
     async def get_rate(self, from_coin: str, from_network: str,
-                       to_coin: str, to_network: str) -> schemas.RatesSchema | None:
+                       to_coin: str, to_network: str) -> schemas.RateResponse | None:
         """Получить обменный курс между двумя монетами."""
         try:
             from_info = await self.get_coin_full_info(from_coin, from_network)
@@ -73,10 +85,17 @@ class EasybitRedisClient:
                                from_coin, to_coin)
                 return None
 
-            return schemas.RatesSchema.model_validate_json(rate)
-        except RedisError as e:
+            try:
+                return schemas.RateResponse.model_validate_json(rate)
+            except ValidationError as e:
+                logger.error('Error validating rate data for %s -> %s: %s',
+                            from_coin, to_coin, e, exc_info=True)
+                raise RedisDataError(f'Ошибка валидации данных курса обмена {from_coin} -> {to_coin}: {e}')
+                
+        except LibRedisError as e:
             logger.error('Error fetching exchange rate for %s -> %s: %s',
                          from_coin, to_coin, e, exc_info=True)
+            raise RedisError(f'Ошибка при получении курса обмена {from_coin} -> {to_coin}: {e}')
 
 
 easybit_redis_client = EasybitRedisClient()

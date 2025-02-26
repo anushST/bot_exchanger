@@ -14,7 +14,7 @@ class OutOFLimitisError(ClientError):
 
 
 class PartnerInternalError(ClientError):
-    """Raises when internal error oqqures."""
+    """Raises when internal error occurs."""
 
     pass
 
@@ -26,13 +26,13 @@ class IncorrectDirectionError(ClientError):
 
 
 class NetworkError(ClientError):
-    """Raises when ther is problems with a network."""
+    """Raises when there is problems with a network."""
 
     pass
 
 
 class TimeoutError(ClientError):
-    """Rises when there is a timout of request."""
+    """Raises when there is a timeout of request."""
 
     pass
 
@@ -52,4 +52,53 @@ class MaximumRetriesError(ClientError):
 class APIError(ClientError):
     """Raises when there is an error with api."""
 
+    pass
+
+class RedisError(Exception):
+    """Base exception for Redis errors."""
+    pass
+
+
+class RedisConnectionError(RedisError):
+    """Exception for Redis connection errors."""
+    pass
+
+
+class RedisDataError(RedisError):
+    """Exception for Redis data errors."""
+    pass
+
+
+class ApiError(Exception):
+    """Base exception for API errors."""
+    pass
+
+
+class AuthenticationError(ApiError):
+    """Exception for authentication errors."""
+    pass
+
+
+class ValidationApiError(ApiError):
+    """Exception for API validation errors."""
+    pass
+
+
+class RateLimitError(ApiError):
+    """Exception for rate limit errors."""
+    pass
+
+
+class InvalidPairError(ApiError):
+    """Exception for invalid currency pair errors."""
+    pass
+
+
+class InvalidRateError(ApiError):
+    """Exception for invalid exchange rate errors."""
+    pass
+
+
+class OrderCreationError(ApiError):
+    """Exception for order creation errors."""
     pass

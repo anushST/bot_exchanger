@@ -7,12 +7,14 @@ class AccountData(BaseModel):
     extra_fee: str = Field(alias="extraFee")
     total_fee: str = Field(alias="totalFee")
 
-    class Config:
-        allow_population_by_field_name = True
+    model_config = {
+        "populate_by_name": True
+    }
 
 class AccountResponse(BaseModel):
     success: int
     data: AccountData
 
-    class Config:
-        allow_population_by_field_name = True
+    model_config = {
+        "populate_by_name": True
+    }

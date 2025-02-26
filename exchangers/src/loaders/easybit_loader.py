@@ -5,6 +5,9 @@ from typing import Dict, Set
 from redis.asyncio import StrictRedis
 from src.config import config
 from src.api.easybit.easybit_client import easybit_client
+from src.exceptions import ClientError
+from src.redis import redis_client
+from src.api.schemas import Coin
 
 logger = logging.getLogger(__name__)
 
@@ -12,181 +15,164 @@ class LoadEasyBitDataToRedis:
     EXCHANGER = 'easybit'
     COINS_KEY = 'coins'
     COIN_NETWORKS = '{coin_name}:networks'
-    SUPPORTED_RECEIVE_NETWORKS = 'supported_receive_networks'
+    FULL_COIN_INFO_KEY = '{exchanger}:{coin_name}:{network}:info'
     RATE_KEY = '{exchanger}:{type}:{from_coin}:{send_network}:to:{to_coin}:{receive_network}:info'
 
     def __init__(self):
-        self.redis_client = StrictRedis(
-            host=config.REDIS_HOST,
-            port=config.REDIS_PORT,
-            db=config.REDIS_DATABASE,
-            decode_responses=True
-        )
+        self.redis_client = redis_client
         self.api_client = easybit_client
 
     async def load_currencies_and_networks(self) -> None:
         try:
-            currency_list = await self.api_client.get_currency_list()
-            if currency_list.success != 1:
-                logger.error("Не удалось загрузить currency_list")
-                return
+            response = await self.api_client.get_currency_list()
             
-            coins_set = set()
-            coin_networks = {}
-            supported_receive_networks: Dict[str, Set[str]] = {}
-            
-            for currency in currency_list.data:
-                coins_set.add(currency.currency)
-                if currency.currency not in coin_networks:
-                    coin_networks[currency.currency] = set()
+            # Проверяем структуру ответа
+            if hasattr(response, 'data'):
+                currencies = response.data
+            else:
+                currencies = response
+                
+            for currency in currencies:
+                # Проверяем, является ли currency объектом или кортежем
+                if isinstance(currency, tuple):
+                    logger.debug(f"Currency is a tuple: {currency}")
+                    continue
+                    
+                coin_name = currency.currency.upper()
+                await self.redis_client.sadd(self.COINS_KEY, coin_name)
+                
                 for network_info in currency.network_list:
-                    coin_networks[currency.currency].add(network_info.network)
-                if currency.receive_status_all:
-                    supported_receive_networks[currency.currency] = set()
-                    for network_info in currency.network_list:
-                        if network_info.receive_status:
-                            supported_receive_networks[currency.currency].add(network_info.network)
-
-            logger.debug(f"Загружено валют: {len(coins_set)}, поддерживаемых для получения: {len(supported_receive_networks)}")
-            logger.debug(f"Поддерживаемые сети для получения: {supported_receive_networks}")
-
-            await self.redis_client.delete(self.COINS_KEY)
-            if coins_set:
-                await self.redis_client.sadd(self.COINS_KEY, *coins_set)
-
-            for coin, networks in coin_networks.items():
-                key = self.COIN_NETWORKS.format(coin_name=coin)
-                await self.redis_client.delete(key)
-                if networks:
-                    await self.redis_client.sadd(key, *networks)
-
-            await self.redis_client.set(
-                self.SUPPORTED_RECEIVE_NETWORKS,
-                json.dumps({coin: list(networks) for coin, networks in supported_receive_networks.items()})
-            )
+                    network = network_info.network.upper()
+                    await self.redis_client.sadd(
+                        self.COIN_NETWORKS.format(coin_name=coin_name),
+                        network
+                    )
+                    
+                    # Create and store full coin info
+                    await self.redis_client.set(
+                        self.FULL_COIN_INFO_KEY.format(
+                            exchanger=self.EXCHANGER,
+                            coin_name=coin_name,
+                            network=network
+                        ),
+                        Coin(
+                            code=currency.currency,  # Using currency as code
+                            coin=currency.currency,
+                            network=network_info.network,
+                            receive=network_info.receive_status,
+                            send=network_info.send_status,
+                            tag_name=network_info.tag_name if hasattr(network_info, 'tag_name') else None
+                        ).model_dump_json(by_alias=True)
+                    )
             
-            logger.info("Список валют и сетей успешно загружен")
+            logger.info("Currency and network list successfully loaded")
             
+        except ClientError as e:
+            logger.error(f"Error loading currency list: {e}", exc_info=True)
         except Exception as e:
-            logger.error(f"Ошибка при загрузке списка валют: {str(e)}")
-            raise
+            logger.error(f"Unexpected error loading currency list: {e}", exc_info=True)
 
     async def load_rates(self) -> None:
         try:
-            supported_networks_json = await self.redis_client.get(self.SUPPORTED_RECEIVE_NETWORKS)
-            if not supported_networks_json:
-                logger.error("Не удалось загрузить поддерживаемые сети из Redis")
-                return
-            supported_receive_networks: Dict[str, Set[str]] = {
-                coin: set(networks) for coin, networks in json.loads(supported_networks_json).items()
-            }
-            logger.debug(f"Поддерживаемые сети для получения из Redis: {supported_receive_networks}")
-
-            pair_list = await self.api_client.get_pair_list()
-            if pair_list.success != 1:
-                logger.error("API вернул неуспешный ответ для pair_list")
-                return
+            response = await self.api_client.get_pair_list()
             
-            logger.debug(f"Получено пар из pair_list: {len(pair_list.data)}")
+            if hasattr(response, 'data'):
+                pair_list = response.data
+            else:
+                pair_list = response
+                
+            logger.debug(f"Received pairs from pair_list: {len(pair_list) if hasattr(pair_list, '__len__') else 'unknown length'}")
             processed_pairs = 0
 
-            for pair_str in pair_list.data:
+            for pair_str in pair_list:
                 try:
                     send, send_network, receive, receive_network = pair_str.split('_')
                     
-                    if receive not in supported_receive_networks:
-                        logger.debug(
-                            f"Пропускаем пару {send}->{receive} ({send_network}->{receive_network}): "
-                            "валюта получения не поддерживается"
-                        )
-                        continue
-                    if receive_network not in supported_receive_networks[receive]:
-                        logger.debug(
-                            f"Пропускаем пару {send}->{receive} ({send_network}->{receive_network}): "
-                            "сеть получения не поддерживается"
-                        )
-                        continue
-                    
                     processed_pairs += 1
-                    logger.debug(f"Обрабатываем пару: {send}->{receive} ({send_network}->{receive_network})")
+                    logger.debug(f"Processing pair: {send}->{receive} ({send_network}->{receive_network})")
                     
-                    pair_info = await self.api_client.get_pair_info(
-                        send=send,
-                        receive=receive,
-                        send_network=send_network,
-                        receive_network=receive_network
-                    )
-                    if pair_info.success != 1:
-                        logger.warning(
-                            f"Пара {send}->{receive} ({send_network}->{receive_network}) "
-                            f"недоступна в pairInfo: {pair_info.errorMessage or 'Неизвестная ошибка'}"
-                        )
-                        continue
-                    
-                    if pair_info.data and pair_info.data.minimumAmount and pair_info.data.maximumAmount:
-                        min_amount = float(pair_info.data.minimumAmount)
-                        max_amount = float(pair_info.data.maximumAmount)
-                        amount = (min_amount + max_amount) / 2
-                        logger.debug(f"Для пары {send}->{receive}: min={min_amount}, max={max_amount}, amount={amount}")
-                    else:
-                        logger.warning(
-                            f"Недостаточно данных для пары {send}->{receive} "
-                            f"({send_network}->{receive_network}): нет min/max amount"
-                        )
-                        continue
-                    
-                    rate_data = await self.api_client.get_rate(
-                        send=send,
-                        receive=receive,
-                        amount=amount,
-                        send_network=send_network,
-                        receive_network=receive_network
-                    )
-                    if rate_data.success == 1:
-                        key = self.RATE_KEY.format(
-                            exchanger=self.EXCHANGER,
-                            type='float',
-                            from_coin=send,
+                    try:
+                        pair_info_response = await self.api_client.get_pair_info(
+                            send=send,
+                            receive=receive,
                             send_network=send_network,
-                            to_coin=receive,
                             receive_network=receive_network
                         )
-                        value = json.dumps(rate_data.data.dict() if rate_data.data else {})
-                        result = await self.redis_client.set(key, value)
-                        if result:
-                            logger.info(f"Курс для {send}->{receive} ({send_network}->{receive_network}) сохранен в Redis, ключ: {key}")
+                        
+                        # Проверяем структуру ответа
+                        if hasattr(pair_info_response, 'data'):
+                            pair_info = pair_info_response.data
                         else:
-                            logger.error(f"Не удалось сохранить курс для {send}->{receive} ({send_network}->{receive_network}) в Redis, ключ: {key}")
-                    else:
-                        logger.warning(
-                            f"Пара {send}->{receive} ({send_network}->{receive_network}) "
-                            f"недоступна в rate: {rate_data.errorMessage or 'Неизвестная ошибка'}"
-                        )
+                            pair_info = pair_info_response
+                        
+                        if pair_info and hasattr(pair_info, 'minimumAmount') and hasattr(pair_info, 'maximumAmount'):
+                            min_amount = float(pair_info.minimumAmount)
+                            max_amount = float(pair_info.maximumAmount)
+                            amount = (min_amount + max_amount) / 2
+                            logger.debug(f"For pair {send}->{receive}: min={min_amount}, max={max_amount}, amount={amount}")
+                        else:
+                            logger.warning(
+                                f"Insufficient data for pair {send}->{receive} "
+                                f"({send_network}->{receive_network}): no min/max amount"
+                            )
+                            continue
+                        
+                        try:
+                            rate_response = await self.api_client.get_rate(
+                                send=send,
+                                receive=receive,
+                                amount=amount,
+                                send_network=send_network,
+                                receive_network=receive_network
+                            )
+                            
+                            if hasattr(rate_response, 'data'):
+                                rate_data = rate_response.data
+                            else:
+                                rate_data = rate_response
+                            
+                            if rate_data:
+                                key = self.RATE_KEY.format(
+                                    exchanger=self.EXCHANGER,
+                                    type='float',
+                                    from_coin=send.upper(),
+                                    send_network=send_network.upper(),
+                                    to_coin=receive.upper(),
+                                    receive_network=receive_network.upper()
+                                )
+                                
+                                if hasattr(rate_data, 'model_dump_json'):
+                                    value = rate_data.model_dump_json()
+                                elif hasattr(rate_data, 'json'):
+                                    value = rate_data.json()
+                                else:
+                                    value = json.dumps(rate_data.__dict__)
+                                    
+                                result = await self.redis_client.set(key, value)
+                                if result:
+                                    logger.info(f"Rate for {send}->{receive} ({send_network}->{receive_network}) saved to Redis")
+                                else:
+                                    logger.error(f"Failed to save rate for {send}->{receive} ({send_network}->{receive_network}) to Redis")
+                            else:
+                                logger.warning(
+                                    f"No rate data for pair {send}->{receive} ({send_network}->{receive_network})"
+                                )
+                                continue
+                        except ClientError as e:
+                            logger.error(f"Error getting rate for {send}->{receive} ({send_network}->{receive_network}): {e}", exc_info=True)
+                            continue
+                    except ClientError as e:
+                        logger.error(f"Error getting pair info for {send}->{receive} ({send_network}->{receive_network}): {e}", exc_info=True)
                         continue
                         
                 except Exception as e:
                     logger.warning(
-                        f"Ошибка при загрузке курса для {send}->{receive} "
-                        f"({send_network}->{receive_network}): {str(e)}"
+                        f"Error processing pair {pair_str}: {e}"
                     )
                     continue
             
-            logger.info(f"Курсы обмена успешно загружены, обработано пар: {processed_pairs}")
+            logger.info(f"Exchange rates successfully loaded, processed pairs: {processed_pairs}")
+        except ClientError as e:
+            logger.error(f"Error loading exchange rates: {e}", exc_info=True)
         except Exception as e:
-            logger.error(f"Ошибка при загрузке курсов обмена: {repr(e)}")
-            raise
-
-    async def run(self) -> None:
-        while True:
-            try:
-                await self.load_currencies_and_networks()
-                await self.load_rates()
-                logger.info("Цикл обновления данных завершен")
-            except Exception as e:
-                logger.error(f"Ошибка в цикле обновления: {repr(e)}")
-            await asyncio.sleep(10)
-
-# if __name__ == "__main__":
-#     logging.basicConfig(level=logging.DEBUG)  # Установим DEBUG для полной отладки
-#     loader = LoadEasyBitDataToRedis()
-#     asyncio.run(loader.run())
+            logger.error(f"Unexpected error loading exchange rates: {e}", exc_info=True)

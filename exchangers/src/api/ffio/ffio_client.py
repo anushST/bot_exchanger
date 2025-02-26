@@ -16,6 +16,7 @@ from src.api.ffio.ffio_redis_data import ffio_redis_client
 from src.api import exceptions as ex
 from src.config import config
 from src.transaction.schemas import CreateBestPrice, BestPrice
+from src.redis import redis_client
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ class FFIOClient:
                         result = await response.json()
                         if result.get('code') == 429:
                             logger.warning(
-                                f'Request limit exceeded. Retrying... ({result.get('msg')})') # noqa
+                                f'Request limit exceeded. Retrying... ({result.get("msg")})')
                             await asyncio.sleep(retry_times)
                             retry_times += 1
                             continue

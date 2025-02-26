@@ -1,12 +1,33 @@
-from typing import List,Optional
+from typing import List, Optional
 from pydantic import BaseModel, Field
+
+
+class PairInfoRequest(BaseModel):
+    send: str
+    receive: str
+    sendNetwork: Optional[str] = None
+    receiveNetwork: Optional[str] = None
+
+class RateRequest(BaseModel):
+    send: str
+    receive: str
+    amount: float
+    sendNetwork: Optional[str] = None
+    receiveNetwork: Optional[str] = None
+    amountType: Optional[str] = None
+    extraFeeOverride: Optional[float] = None
 
 class PairListResponse(BaseModel):
     success: int
-    data: List[str] = Field(..., description='List of pairs in format "sendCurrency_sendNetwork_receiveCurrency_receiveNetwork"')
+    data: List[str] = Field(
+        ..., 
+        description='List of pairs in format '
+                   '"sendCurrency_sendNetwork_receiveCurrency_receiveNetwork"'
+    )
 
-    class Config:
-        allow_population_by_field_name = True
+    model_config = {
+        "populate_by_name": True
+    }
 
 class PairInfoData(BaseModel):
     minimumAmount: Optional[str] = Field(None, alias="minimumAmount")

@@ -7,7 +7,7 @@ from src.api.coin_redis_data import coin_redis_data_client
 from src.api.schemas import RatesSchema
 from src.enums import Exchangers
 from src.exceptions import ClientError
-from exchangers.src.redis import redis_client
+from src.redis import redis_client
 
 
 logger = logging.getLogger(__name__)
@@ -83,7 +83,7 @@ async def get_fixed_best_rate(
                     rate_obj = await easybit_client.get_rate(
                         send=from_coin_info.code,
                         receive=to_coin_info.code,
-                        amount=1.0  # Approximate value, can be changed depending on API
+                        amount=1.0  
                     )
                     
                     rate = get_rate(rate_obj)

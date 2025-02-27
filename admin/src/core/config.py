@@ -14,7 +14,8 @@ class Settings(BaseSettings):
     FFIO_APIKEY: str
     FFIO_SECRET: str
     DOMAIN: str
-
+    EASYBIT_API_KEY: str
+    
     REDIS_HOST: Optional[str] = 'localhost'
     REDIS_PORT: Optional[str] = '6379'
     REDIS_DATABASE: Optional[int] = 0

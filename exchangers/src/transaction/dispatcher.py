@@ -60,5 +60,5 @@ class TransactionDispatcher:
         async with get_session() as session:
             transaction.status = TransactionStatuses.ERROR.value
             transaction.status_code = tc.UNDEFINED_ERROR_CODE
-            session.add(transaction)
+            transaction = await session.merge(transaction)
             await session.commit()

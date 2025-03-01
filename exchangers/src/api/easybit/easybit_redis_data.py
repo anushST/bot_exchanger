@@ -5,7 +5,7 @@ from pydantic import ValidationError
 from src.api.easybit import schemas
 from src.api.schemas import Coin
 from src.redis import redis_client
-from src.api.exceptions import RedisError, RedisDataError
+from src.api.exceptions import RedisError, RedisDataError, SchemaError
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ class EasybitRedisClient:
             except ValidationError as e:
                 logger.error('Error validating coin data for %s on network %s: %s',
                             coin, network, e, exc_info=True)
-                raise RedisDataError(f'Ошибка валидации данных монеты {coin} в сети {network}: {e}')
+                raise SchemaError(f'Ошибка валидации данных монеты {coin} в сети {network}: {e}')
                 
         except LibRedisError as e:
             logger.error('Error fetching info for coin %s on network %s: %s',

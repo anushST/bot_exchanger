@@ -67,15 +67,16 @@ class EasyBitClient:
                             error_code = response_data.get('errorCode', 0)
                             logger.error(f"API response error: {error_message} (code: {error_code})")
                             
-                            # Determine error type by code
-                            if error_code in (1001, 1002, 1003):  # Validation error codes
-                                raise ex.ValidationApiError(f"Validation error: {error_message} (code: {error_code})")
-                            elif error_code in (2001, 2002):  # Authentication error codes
+                            # Обрабатываем только Authentication Error здесь
+                            if error_code in (2001, 2002):  # Authentication error codes
                                 raise ex.AuthenticationError(f"Authentication error: {error_message} (code: {error_code})")
                             elif error_code in (3001, 3002):  # Rate limit error codes
-                                raise ex.RateLimitError(f"Rate limit exceeded: {error_message} (code: {error_code})")
-                            else:
-                                raise ex.ApiError(f"API error: {error_message} (code: {error_code})")
+                                logger.warning(f"Rate limit error: {error_message} (code: {error_code}), attempt {attempt + 1}")
+                                await asyncio.sleep(1)
+                                continue
+                            
+                            # Остальные ошибки просто возвращаем для обработки в конкретных методах
+                            return response_data
                         
                         return response_data
                         
@@ -186,7 +187,7 @@ class EasyBitClient:
             return result
         except ValidationError as e:
             logger.error(f"RateResponse validation error: {e}")
-            raise ex.DataProcessingError(f"RateResponse validation error: {e}")
+            raise ex.SchemaError(f"RateResponse validation error: {e}")
 
     async def create_order(self, order_data: schemas.CreateOrderRequest) -> schemas.OrderResponse:
         """
@@ -208,7 +209,7 @@ class EasyBitClient:
             return result
         except ValidationError as e:
             logger.error(f"OrderResponse validation error: {e}")
-            raise ex.DataProcessingError(f"OrderResponse validation error: {e}")
+            raise ex.SchemaError(f"OrderResponse validation error: {e}")
 
     async def get_order_status(self, order_id: str) -> schemas.OrderStatusResponse:
         """

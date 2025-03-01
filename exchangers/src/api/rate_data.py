@@ -193,37 +193,51 @@ async def get_rate_in_usdt(
         networks_usdt = await coin_redis_data_client.get_networks('USDT')
         if not networks_usdt:
             return None
-
-        coin_info = await coin_redis_data_client.get_coin_full_info(
-            Exchangers.CHANGELLY, from_coin, from_coin_network
-        )
-        if not coin_info:
-            return None
-
+        
+        providers = [Exchangers.CHANGELLY, Exchangers.EASYBIT]
+        
         for net_usdt in networks_usdt:
-            try:
-                usdt_info = await coin_redis_data_client.get_coin_full_info(
-                    Exchangers.CHANGELLY, 'USDT', net_usdt
-                )
-                if not usdt_info:
-                    continue
-
+            for provider in providers:
                 try:
-                    rate = await changelly_client.get_float_rate(
-                        changelly_schemas.CreateRate(
-                            from_coin=coin_info.code,
-                            to_coin=usdt_info.code
-                        )
+                    coin_info = await coin_redis_data_client.get_coin_full_info(
+                        provider, from_coin, from_coin_network
                     )
-                    if rate:
-                        return rate
-                except ClientError as e:
-                    logger.error("Error getting float rate to USDT from Changelly: %s", e, exc_info=True)
-                    continue
+                    usdt_info = await coin_redis_data_client.get_coin_full_info(
+                        provider, 'USDT', net_usdt
+                    )
                     
-            except ClientError as e:
-                logger.error("Error getting USDT info for network %s: %s", net_usdt, e, exc_info=True)
-                continue
+                    if not coin_info or not usdt_info:
+                        continue
+
+                    if provider == Exchangers.CHANGELLY:
+                        try:
+                            rate = await changelly_client.get_float_rate(
+                                changelly_schemas.CreateRate(
+                                    from_coin=coin_info.code,
+                                    to_coin=usdt_info.code
+                                )
+                            )
+                            if rate:
+                                return rate
+                        except ClientError as e:
+                            logger.error("Error getting float rate to USDT from Changelly: %s", e, exc_info=True)
+                            continue
+                    elif provider == Exchangers.EASYBIT:
+                        try:
+                            rate = await easybit_client.get_rate(
+                                send=coin_info.code,
+                                receive=usdt_info.code,
+                                amount=1.0
+                            )
+                            if rate:
+                                return rate
+                        except ClientError as e:
+                            logger.error("Error getting rate to USDT from Easybit: %s", e, exc_info=True)
+                            continue
+                            
+                except ClientError as e:
+                    logger.error("Error getting coin info for %s: %s", provider.value, e, exc_info=True)
+                    continue
         return None
     except ClientError as e:
         logger.error("Error getting rate in USDT: %s", e, exc_info=True)

@@ -25,6 +25,7 @@ class TransactionDispatcher:
     def __init__(self) -> None:
         """Start here the Transaction Processor's loop."""
         asyncio.create_task(ChangellyTransaction.observer_process())
+        asyncio.create_task(EasyBitTransaction.observer_process())
 
     async def get_best_exchanger(self, transaction: Transaction) -> None:
         if transaction.status == TransactionStatuses.HANDLED.value:
@@ -60,5 +61,6 @@ class TransactionDispatcher:
         async with get_session() as session:
             transaction.status = TransactionStatuses.ERROR.value
             transaction.status_code = tc.UNDEFINED_ERROR_CODE
-            transaction = await session.merge(transaction)
+            session.add(transaction)
             await session.commit()
+            await session.refresh(transaction)

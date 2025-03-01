@@ -48,6 +48,10 @@ class RedisDataError(RedisError):
     """Exception for Redis data errors."""
     pass
 
+class SchemaError(Exception):
+    """Exception for schema validation errors."""
+    pass
+
 class ApiError(Exception):
     """Base exception for API errors."""
     pass

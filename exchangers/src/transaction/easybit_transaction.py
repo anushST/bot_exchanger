@@ -197,62 +197,73 @@ class EasyBitTransaction:
                         ]))
                     )
                     transactions = result.scalars().all()
-            except Exception as e:
-                logger.error(f'Error occurred when querying transactions: {e}')
-                raise ex.DatabaseError(
-                    'Error accessing transaction database') from e
 
-            for transaction in transactions:
-                try:
-                    if not transaction.transaction_id:
-                        logger.error(f'Transaction {transaction.id} has no Easybit ID')
-                        continue
+                if not transactions:
+                    logger.info('No active transactions to process.')
+                    await asyncio.sleep(10)
+                    continue
 
-                    order_status = await easybit_client.get_order_status(transaction.transaction_id)
-                    
-                    status_mapping = {
-                        easybit_schemas.OrderStatusEnum.AWAITING_DEPOSIT: TransactionStatuses.CREATED.value,
-                        easybit_schemas.OrderStatusEnum.CONFIRMING_DEPOSIT: TransactionStatuses.PENDING.value,
-                        easybit_schemas.OrderStatusEnum.EXCHANGING: TransactionStatuses.EXCHANGE.value,
-                        easybit_schemas.OrderStatusEnum.SENDING: TransactionStatuses.WITHDRAW.value,
-                        easybit_schemas.OrderStatusEnum.COMPLETE: TransactionStatuses.DONE.value,
-                        easybit_schemas.OrderStatusEnum.REFUND: TransactionStatuses.ERROR.value,
-                        easybit_schemas.OrderStatusEnum.FAILED: TransactionStatuses.EMERGENCY.value,
-                        easybit_schemas.OrderStatusEnum.VOLATILITY_PROTECTION: TransactionStatuses.EMERGENCY.value,
-                        easybit_schemas.OrderStatusEnum.ACTION_REQUEST: TransactionStatuses.EMERGENCY.value,
-                        easybit_schemas.OrderStatusEnum.REQUEST_OVERDUE: TransactionStatuses.EMERGENCY.value,
-                    }
-                    
-                    new_status = status_mapping.get(order_status.data.status)
-                    if new_status is None:
-                        logger.error('Unknown status retrieved for transaction '
-                                     f'{transaction.id}: {order_status.data.status}')
-                        continue
+                earliest_time = min(
+                    t.time_registred for t in transactions if t.time_registred
+                )
+                date_from = int((earliest_time - timedelta(hours=1)).timestamp() * 1000)
+                transaction_dict = {t.transaction_id: t for t in transactions if t.transaction_id}
 
-                    try:
-                        async with get_session() as session:
+                status_mapping = {
+                    "AWAITING_DEPOSIT": TransactionStatuses.CREATED.value,
+                    "CONFIRMING_DEPOSIT": TransactionStatuses.PENDING.value,
+                    "EXCHANGING": TransactionStatuses.EXCHANGE.value,
+                    "SENDING": TransactionStatuses.WITHDRAW.value,
+                    "COMPLETE": TransactionStatuses.DONE.value,
+                    "REFUND": TransactionStatuses.ERROR.value,
+                    "FAILED": TransactionStatuses.EMERGENCY.value,
+                    "VOLATILITY_PROTECTION": TransactionStatuses.EMERGENCY.value,
+                    "ACTION_REQUEST": TransactionStatuses.EMERGENCY.value,
+                    "REQUEST_OVERDUE": TransactionStatuses.EMERGENCY.value,
+                }
+
+                while True:
+                    orders_response = await easybit_client.get_orders(
+                        dateFrom=date_from,
+                        limit=2000,
+                        sortDirection="ASC"
+                    )
+                    orders = orders_response.data  
+
+                    async with get_session() as session:
+                        for order in orders:
+                            transaction = transaction_dict.get(order.id)
+                            if not transaction:
+                                continue
+
+                            new_status = status_mapping.get(order.status)
+                            if new_status is None:
+                                logger.error(f'Unknown status for transaction {transaction.id}: {order.status}')
+                                continue
+
                             if new_status != transaction.status:
                                 transaction.status = new_status
-                                logger.info(f'Transaction {transaction.id} updated to '
-                                            f'status {new_status}.')
-                            
-                            transaction.received_to_amount = order_status.data.receive_amount
-                            transaction.received_from_id = order_status.data.hash_in
-                            transaction.received_to_id = order_status.data.hash_out
-                            
-                            if order_status.data.updated_at:
-                                transaction.time_lastupdate = datetime.fromtimestamp(
-                                    order_status.data.updated_at / 1000)
-                            
+                                logger.info(f'Transaction {transaction.id} updated to status {new_status}.')
+
+                            transaction.received_to_amount = order.receive_amount
+                            transaction.received_from_id = order.hash_in
+                            transaction.received_to_id = order.hash_out
+                            if order.updated_at:
+                                transaction.time_lastupdate = datetime.fromtimestamp(order.updated_at / 1000)
+
                             session.add(transaction)
-                            await session.commit()
-                            await session.refresh(transaction)
-                    except Exception as e:
-                        logger.error(f'Error updating transaction {transaction.id}: {e}')
-                        raise ex.DatabaseError(
-                            'Error accessing transaction database') from e
-                except Exception as e:
-                    logger.error(f'Error processing transaction {transaction.id}: {e}', 
-                                 exc_info=True)
-            
+
+                        await session.commit()
+                        logger.info(f'Processed {len(orders)} orders.')
+
+                    if len(orders) < 2000:
+                        break
+
+                    last_order_time = orders[-1].created_at  
+                    date_from = last_order_time + 1
+
+            except Exception as e:
+                logger.error(f'Error in observer_process: {e}', exc_info=True)
+                raise ex.DatabaseError('Error processing transactions') from e
+
             await asyncio.sleep(10)

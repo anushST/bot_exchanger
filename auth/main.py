@@ -30,11 +30,11 @@ async def init_db():
                         exc_info=True)
         raise
 
-app = FastAPI(docs_url='/docs/p2p/swagger',
-              openapi_url='/docs/p2p/openapi.json',
+app = FastAPI(docs_url='/docs/auth/swagger',
+              openapi_url='/docs/auth/openapi.json',
               title=settings.app_title)
 
-app.include_router(main_router, prefix='/api/v1')
+app.include_router(main_router, prefix='/api')
 
 app.add_middleware(
     CORSMiddleware,

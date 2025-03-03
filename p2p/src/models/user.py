@@ -1,5 +1,4 @@
 import uuid
-from enum import Enum as pyEnum
 from datetime import datetime
 
 from sqlalchemy import (
@@ -8,12 +7,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 
 from src.core.db import Base
-
-
-class UserRoles(str, pyEnum):
-    USER = "USER"
-    MODERATOR = "MODERATOR"
-    ARBITRATOR = "ARBITRATOR"
+from src.enums import UserRole
 
 
 class User(Base):
@@ -23,8 +17,10 @@ class User(Base):
     tg_id = Column(BigInteger, unique=True, nullable=False)
     tg_name = Column(String(255), nullable=False)
     tg_username = Column(String(255), nullable=True)
-    role = Column(Enum(*[r.value for r in UserRoles]), nullable=False,
-                  default=UserRoles.USER.value)
+    role = Column(Enum(*[r.value for r in UserRole],
+                       name='user_role'),
+                  nullable=False,
+                  default=UserRole.USER.value)
     language = Column(String(2), nullable=False, default="ru")
     last_active_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.now, nullable=False)
@@ -32,7 +28,7 @@ class User(Base):
                         onupdate=datetime.now, nullable=False)
 
 
-arbitrator_banks = Table(
+arbitrager_banks = Table(
     'p2p_arbitrator_banks',
     Base.metadata,
     Column('arbitrator_id', UUID, ForeignKey('p2p_arbitragers.id'),
@@ -48,7 +44,7 @@ class Arbitrager(Base):
     created_at = Column(DateTime, default=datetime.now, nullable=False)
     updated_at = Column(DateTime, default=datetime.now,
                         onupdate=datetime.now, nullable=False)
-    banks = relationship('Bank', secondary=arbitrator_banks,
+    banks = relationship('Bank', secondary=arbitrager_banks,
                          back_populates='p2p_arbitragers', lazy='joined')
 
 

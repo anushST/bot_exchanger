@@ -1,6 +1,5 @@
 import uuid
 from datetime import datetime
-from enum import Enum as pyEnum
 
 from sqlalchemy import (
     Column, Boolean, DateTime, String, Enum, Table, ForeignKey)
@@ -8,18 +7,15 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 
 from src.core.db import Base
-
-
-class CurrencyTypeEnum(str, pyEnum):
-    FIAT = "FIAT"
-    CRYPTO = "CRYPTO"
+from src.enums import CurrencyType
 
 
 currency_networks = Table(
-    'currency_networks',
+    'p2p_currency_networks',
     Base.metadata,
-    Column('currency_id', UUID, ForeignKey('currencies.id'), primary_key=True),
-    Column('network_id', UUID, ForeignKey('networks.id'), primary_key=True)
+    Column('currency_id', UUID, ForeignKey('p2p_currencies.id'),
+           primary_key=True),
+    Column('network_id', UUID, ForeignKey('p2p_networks.id'), primary_key=True)
 )
 
 
@@ -29,7 +25,9 @@ class Currency(Base):
                 unique=True, nullable=False)
     name = Column(String, nullable=False)
     code = Column(String, nullable=False)
-    type = Column(Enum(*[t.value for t in CurrencyTypeEnum]), nullable=False)
+    type = Column(Enum(*[t.value for t in CurrencyType],
+                       name='p2p_currency_type'), nullable=False,
+                  default=CurrencyType.CRYPTO.value)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.now, nullable=False)
     updated_at = Column(DateTime, default=datetime.now,

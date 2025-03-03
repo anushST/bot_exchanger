@@ -7,10 +7,11 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from src.core.db import Base
+from src.enums import OfferType
 
 
 arbitrator_offer_networks = Table(
-    'arbitrator_offer_networks',
+    'p2p_arbitrator_offer_networks',
     Base.metadata,
     Column('offer_id', UUID, ForeignKey('p2p_arbitrager_offers.id'),
            primary_key=True),
@@ -18,23 +19,19 @@ arbitrator_offer_networks = Table(
 )
 
 
-class OfferTypeEnum(str, Enum):
-    BUY = 'BUY'
-    SELL = 'SELL'
-
-
 class Offer(Base):
     __tablename__ = 'p2p_arbitrager_offers'
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4,
                 unique=True, nullable=False)
-    arbitrator_id = Column(UUID, ForeignKey('arbitrators.id'),
+    arbitrator_id = Column(UUID, ForeignKey('p2p_arbitragers.id'),
                            nullable=False)
-    fiat_currency_id = Column(UUID, ForeignKey('currencies.id'),
+    fiat_currency_id = Column(UUID, ForeignKey('p2p_currencies.id'),
                               nullable=False)
-    crypto_currency_id = Column(UUID, ForeignKey('currencies.id'),
+    crypto_currency_id = Column(UUID, ForeignKey('p2p_currencies.id'),
                                 nullable=False)
-    offer_type = Column(Enum(OfferTypeEnum), nullable=False)
+    type = Column(Enum(*[o.value for o in OfferType],
+                       name='p2p_offer_type'), nullable=False)
     price = Column(DECIMAL(10, 2), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.now, nullable=False)

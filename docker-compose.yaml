@@ -18,6 +18,18 @@ services:
     volumes:
       - ./backend:/usr/src/app
 
+  auth:
+    build: ./auth
+    restart: always
+    depends_on:
+      - db
+      - redis
+    command: ["python", "main.py"]
+    ports:
+      - 8002:8002
+    volumes:
+      - ./auth:/usr/src/app
+
   admin:
     build: ./admin
     restart: always

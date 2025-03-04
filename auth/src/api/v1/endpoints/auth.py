@@ -15,12 +15,11 @@ from src.utils import (refresh_access_token, get_password_hash,
 router = APIRouter()
 
 
-@router.get('/telegram-auth', response_model=schemas.TokensResponse)
-async def auth_check(request: Request,
+@router.post('/telegram-auth', response_model=schemas.TokensResponse)
+async def auth_check(tg_data: schemas.TelegramAuthRequest,
                      session: AsyncSession = Depends(get_async_session)
                      ) -> schemas.TokensResponse:
-    data = dict(request.query_params)
-
+    data = tg_data.model_dump()
     if not verify_telegram_auth(data, settings.TELEGRAM_BOT_TOKEN):
         raise HTTPException(status_code=401, detail="Invalid Telegram data")
 

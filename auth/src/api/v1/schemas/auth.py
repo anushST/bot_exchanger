@@ -13,3 +13,12 @@ class TokensResponse(BaseModel):
 class CreateLogin(BaseModel):
     username: EmailStr
     password: str
+
+
+class TelegramAuthRequest(BaseModel):
+    id: int
+    first_name: str
+    username: str
+    photo_url: str
+    auth_date: int
+    hash: str

@@ -14,3 +14,15 @@ class ClientError(Exception):
     """The base class for client errors."""
 
     pass
+
+
+class ExpiredSignatureError(Exception):
+    """Raises when the signature is expired."""
+
+    pass
+
+
+class InvalidTokenError(Exception):
+    """Raises when the token is invalid."""
+
+    pass

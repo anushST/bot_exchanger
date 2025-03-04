@@ -16,7 +16,7 @@ class ModerationRequest(Base):
                 unique=True, nullable=False)
     deal_id = Column(UUID(as_uuid=True), ForeignKey('p2p_deals.id'),
                      nullable=False)
-    requested_by = Column(UUID(as_uuid=True), ForeignKey('user.id'),
+    requested_by = Column(UUID(as_uuid=True), ForeignKey('users.id'),
                           nullable=False)
     status = Column(Enum(*[s.value for s in ModerationStatus],
                          name='p2p_moderation_status'),
@@ -26,8 +26,3 @@ class ModerationRequest(Base):
     created_at = Column(DateTime, default=datetime.now, nullable=False)
     updated_at = Column(DateTime, default=datetime.now,
                         onupdate=datetime.now, nullable=False)
-
-    deal = relationship("Deal", back_populates="moderation_requests",
-                        lazy='joined')
-    requester = relationship("User", back_populates="moderation_requests",
-                             lazy='joined')

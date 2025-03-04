@@ -34,7 +34,7 @@ app = FastAPI(docs_url='/docs/p2p/swagger',
               openapi_url='/docs/p2p/openapi.json',
               title=settings.app_title)
 
-app.include_router(main_router, prefix='/api/v1')
+app.include_router(main_router, prefix='/api')
 
 app.add_middleware(
     CORSMiddleware,
@@ -50,7 +50,7 @@ async def main():
     await init_db()
 
     config = uvicorn.Config('main:app', host='0.0.0.0',
-                            port=8002, reload=True, log_config=None)
+                            port=8003, reload=True, log_config=None)
     server = uvicorn.Server(config)
     await server.serve()
 

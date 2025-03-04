@@ -1,42 +1,59 @@
+import uuid
+
+from src.api.v1.schemas import MessageCreate, MessageRead
+from src.models import ChatMessage, Deal
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.models.messages import Message
-from app.schemas.messages import MessageCreate, MessageRead
-from typing import List
 
-async def create_message(db: AsyncSession, message_data: MessageCreate, sender_id: int) -> MessageRead:
-    new_message = Message(
+
+async def create_message(session: AsyncSession, message_data: MessageCreate,
+                         sender_id: uuid.UUID) -> MessageRead:
+    new_message = ChatMessage(
         deal_id=message_data.deal_id,
         sender_id=sender_id,
-        text=message_data.text,
-        media_url=message_data.media_url,
-        media_type=message_data.media_type
+        message_content=message_data.text,
+        # media_url=message_data.media_url,
+        # media_type=message_data.media_type
     )
-    db.add(new_message)
-    await db.commit()
-    await db.refresh(new_message)
+    session.add(new_message)
+    await session.commit()
+    await session.refresh(new_message)
     return new_message
 
 
-async def get_messages_by_deal(db: AsyncSession, deal_id: int) -> List[MessageRead]:
-    query = select(Message).where(Message.deal_id == deal_id).order_by(Message.created_at.asc())
-    result = await db.execute(query)
-    messages = result.scalars().all()
-    return [MessageRead.from_orm(m) for m in messages]
+async def get_messages_by_deal(
+        session: AsyncSession, deal_id: uuid.UUID,
+        user_id: uuid.UUID) -> list[MessageRead]:
+    deal = await session.execute(select(Deal).where(Deal.id == deal_id))
+    deal = deal.scalars().first()
+
+    if deal and (deal.buyer_id == user_id or deal.arbitrator_id == user_id):
+        query = select(ChatMessage).where(
+            ChatMessage.deal_id == deal_id).order_by(
+                ChatMessage.created_at.asc())
+        result = await session.execute(query)
+        messages = result.scalars().all()
+        return [MessageRead.model_validate(m) for m in messages]
+    return []
 
 
-async def mark_message_read(db: AsyncSession, message_id: int) -> MessageRead:
-    query = select(Message).where(Message.id == message_id)
-    result = await db.execute(query)
+async def mark_message_read(
+    session: AsyncSession, message_id: uuid.UUID, user_id: uuid.UUID
+) -> MessageRead | None:
+    query = select(ChatMessage).where(ChatMessage.id == message_id)
+    result = await session.execute(query)
     msg_obj = result.scalar_one_or_none()
-    
-    if msg_obj is None:
-        # Можно вернуть ошибку или исключение
-        # raise HTTPException(status_code=404, detail="Message not found")
-        pass
-    
-    msg_obj.is_read = True
-    db.add(msg_obj)
-    await db.commit()
-    await db.refresh(msg_obj)
-    return MessageRead.from_orm(msg_obj)
+
+    if not msg_obj or msg_obj.deal:
+        return None
+
+    is_buyer = msg_obj.deal.buyer_id == user_id
+    is_arbitrager = msg_obj.deal.arbitrator_id == user_id
+
+    if (is_buyer or is_arbitrager) and msg_obj.sender_id != user_id:
+        msg_obj.is_read = True
+        session.add(msg_obj)
+        await session.commit()
+        await session.refresh(msg_obj)
+
+    return MessageRead.model_validate(msg_obj)

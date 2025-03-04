@@ -14,7 +14,7 @@ class Deal(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4,
                 unique=True, nullable=False)
-    buyer_id = Column(UUID(as_uuid=True), ForeignKey('user.id'),
+    buyer_id = Column(UUID(as_uuid=True), ForeignKey('users.id'),
                       nullable=False)
     arbitrator_id = Column(UUID(as_uuid=True),
                            ForeignKey('p2p_arbitragers.id'),
@@ -41,20 +41,5 @@ class Deal(Base):
     updated_at = Column(DateTime, default=datetime.now,
                         onupdate=datetime.now, nullable=False)
 
-    buyer = relationship('User', foreign_keys=[buyer_id],
-                         back_populates='bought_deals', lazy='select')
-    arbitrator = relationship('User', foreign_keys=[arbitrator_id],
-                              back_populates='arbitrated_deals', lazy='select',
-                              uselist=False)
-    arbitrator_offer = relationship('Offer', back_populates='deals',
-                                    lazy='select', uselist=False)
-
-    fiat_currency = relationship(
-        'Currency', foreign_keys=[fiat_currency_id], lazy='select')
-    crypto_currency = relationship(
-        'Currency', foreign_keys=[crypto_currency_id], lazy='select')
-    bank = relationship('Bank', lazy='select')
-    network = relationship('Network', lazy='select')
-
-    moderation_requests = relationship(
-        'ModerationRequest', back_populates='deal', lazy='select')
+    messages = relationship('ChatMessage', back_populates='deal',
+                            cascade='all, delete-orphan')

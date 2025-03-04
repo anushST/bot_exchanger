@@ -37,8 +37,3 @@ class Offer(Base):
     created_at = Column(DateTime, default=datetime.now, nullable=False)
     updated_at = Column(DateTime, default=datetime.now,
                         onupdate=datetime.now, nullable=False)
-
-    arbitrator = relationship("Arbitrager", back_populates="offers",
-                              lazy='joined')
-    networks = relationship("Network", secondary=arbitrator_offer_networks,
-                            back_populates="offers", lazy='joined')

@@ -1,25 +1,24 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, UUID4
 from typing import Optional
 
 
 class MessageBase(BaseModel):
-    deal_id: int
+    deal_id: UUID4
     text: Optional[str] = None
 
 
 class MessageCreate(MessageBase):
-    media_url: Optional[str] = None
-    media_type: Optional[str] = None
+    pass
 
 
 class MessageRead(BaseModel):
-    id: int
-    deal_id: int
+    id: UUID4
+    deal_id: UUID4
     text: Optional[str]
     media_url: Optional[str]
     media_type: Optional[str]
     is_read: bool
 
     model_config = ConfigDict(
-        orm_mode=True
+        from_attributes=True
     )

@@ -34,7 +34,7 @@ class Currency(Base):
                         onupdate=datetime.now, nullable=False)
 
     networks = relationship("Network", secondary=currency_networks,
-                            back_populates="p2p_currencies", lazy='joined')
+                            back_populates="currencies", lazy='joined')
 
 
 class Network(Base):
@@ -49,4 +49,4 @@ class Network(Base):
                         onupdate=datetime.now, nullable=False)
 
     currencies = relationship("Currency", secondary=currency_networks,
-                              back_populates="p2p_networks", lazy='joined')
+                              back_populates="networks", lazy='joined')

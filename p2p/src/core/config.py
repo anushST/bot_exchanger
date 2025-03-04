@@ -8,12 +8,13 @@ class Settings(BaseSettings):
     app_description: str = 'Описание проекта'
     secret: str = 'SECRET'
     DATABASE_URL: str
-    TOKEN: str
+    TELEGRAM_BOT_TOKEN: str
     ADMIN_TOKEN: str
     TIMEZONE: Optional[str] = 'Europe/Moscow'
     FFIO_APIKEY: str
     FFIO_SECRET: str
     DOMAIN: str
+    SECRET_KEY: str
 
     REDIS_HOST: Optional[str] = 'localhost'
     REDIS_PORT: Optional[str] = '6379'

@@ -10,3 +10,6 @@ v1_router.include_router(
 v1_router.include_router(
     endpoints.swaps_router, prefix='/swaps', tags=['Swaps']
 )
+v1_router.include_router(
+    endpoints.deals_router, prefix='/deals', tags=['Swaps']
+)

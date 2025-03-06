@@ -1,4 +1,3 @@
-import os
 import asyncio
 import logging
 from typing import Any, Dict, Optional, Union
@@ -7,14 +6,15 @@ from pydantic import BaseModel, ValidationError
 
 from . import constants as const
 from . import schemas
-from src.config import config
+from src.core.config import settings
 from src.api import exceptions as ex
 
 logger = logging.getLogger(__name__)
 
+
 class EasyBitClient:
     def __init__(self, api_key: Optional[str] = None) -> None:
-        self.api_key = api_key or config.EASYBIT_API_KEY
+        self.api_key = api_key or settings.EASYBIT_API_KEY
         if not self.api_key:
             raise ValueError(
                 "API key not set. Check config.EASYBIT_API_KEY."
@@ -31,12 +31,12 @@ class EasyBitClient:
     ) -> Dict[str, Any]:
         url = f"{self.base_url}{endpoint}"
         headers = {"API-KEY": self.api_key}
-        
+
         if isinstance(params, BaseModel):
             params = params.model_dump(exclude_none=True)
         if isinstance(data, BaseModel):
             data = data.model_dump(exclude_none=True)
-            
+
         async with aiohttp.ClientSession(timeout=self.timeout) as session:
             for attempt in range(const.MAX_RETRIES):
                 try:
@@ -51,10 +51,9 @@ class EasyBitClient:
                             logger.warning(f"Rate limit exceeded, attempt {attempt + 1}")
                             await asyncio.sleep(const.RETRY_DELAY * (attempt + 1))
                             continue
-                            
+
                         response_data = await response.json()
-                        
-                        # Check for API errors
+
                         if response.status >= 400:
                             error_message = response_data.get('errorMessage', 'Unknown API error')
                             error_code = response_data.get('errorCode', 0)

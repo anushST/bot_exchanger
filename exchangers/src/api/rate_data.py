@@ -193,9 +193,9 @@ async def get_rate_in_usdt(
         networks_usdt = await coin_redis_data_client.get_networks('USDT')
         if not networks_usdt:
             return None
-        
+
         providers = [Exchangers.CHANGELLY, Exchangers.EASYBIT]
-        
+
         for net_usdt in networks_usdt:
             for provider in providers:
                 try:
@@ -205,7 +205,7 @@ async def get_rate_in_usdt(
                     usdt_info = await coin_redis_data_client.get_coin_full_info(
                         provider, 'USDT', net_usdt
                     )
-                    
+
                     if not coin_info or not usdt_info:
                         continue
 
@@ -234,7 +234,7 @@ async def get_rate_in_usdt(
                         except ClientError as e:
                             logger.error("Error getting rate to USDT from Easybit: %s", e, exc_info=True)
                             continue
-                            
+
                 except ClientError as e:
                     logger.error("Error getting coin info for %s: %s", provider.value, e, exc_info=True)
                     continue

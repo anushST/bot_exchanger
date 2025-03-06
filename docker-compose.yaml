@@ -31,6 +31,8 @@ services:
       - db
       - redis
     command: ["python", "main.py"]
+    environment:
+      - ENV_STATE=dev
     ports:
       - 8000:8000
     volumes:
@@ -43,6 +45,8 @@ services:
       - db
       - redis
     command: ["python", "main.py"]
+    environment:
+      - ENV_STATE=dev
     ports:
       - 8002:8002
     volumes:
@@ -55,6 +59,8 @@ services:
       - db
       - redis
     command: ["python", "main.py"]
+    environment:
+      - ENV_STATE=dev
     ports:
       - 8001:8001
     volumes:

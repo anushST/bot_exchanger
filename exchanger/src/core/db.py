@@ -26,8 +26,9 @@ async def get_async_session():
     async with AsyncSessionLocal() as async_session:
         yield async_session
 
+
 @asynccontextmanager
-async def get_async_session_generator():
+async def get_session():
     async with AsyncSessionLocal() as async_session:
         yield async_session
 

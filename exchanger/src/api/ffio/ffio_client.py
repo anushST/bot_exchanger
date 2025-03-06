@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from . import schemas, constants as c
 from src.api.ffio.ffio_redis_data import ffio_redis_client
 from src.api import exceptions as ex
-from src.config import config
+from src.core.config import settings
 from src.transaction.schemas import CreateBestPrice, BestPrice
 
 logger = logging.getLogger(__name__)
@@ -179,4 +179,4 @@ class FFIOClient:
         return response
 
 
-ffio_client = FFIOClient(config.FFIO_APIKEY, config.FFIO_SECRET)
+ffio_client = FFIOClient(settings.FFIO_APIKEY, settings.FFIO_SECRET)

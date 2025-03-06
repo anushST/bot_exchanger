@@ -4,9 +4,9 @@ from enum import Enum
 class Exchangers(Enum):
     FFIO = 'ffio'
     CHANGELLY = 'changelly'
-    EASTBIT = 'eastbit'
+    EASYBIT = 'eastbit'
 
 
 class RateLoadedExchangers(Enum):
     FFIO = 'ffio'
-    EASTBIT = 'eastbit'
+    EASYBIT = 'eastbit'

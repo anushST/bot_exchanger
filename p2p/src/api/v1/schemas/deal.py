@@ -1,20 +1,61 @@
 from pydantic import BaseModel, validator
-from pydantic.types import Decimal  
+from pydantic.types import Decimal
 from typing import Optional
 import uuid
 from datetime import datetime
 
+# Вложенные модели
+class UserResponse(BaseModel):
+    id: uuid.UUID
+    email: str
+    role: str
+
+    class Config:
+        orm_mode = True
+
+class CurrencyResponse(BaseModel):
+    id: uuid.UUID
+    code: str
+    name: str
+
+    class Config:
+        orm_mode = True
+
+class BankResponse(BaseModel):
+    id: uuid.UUID
+    code: str
+    name: str
+
+    class Config:
+        orm_mode = True
+
+class NetworkResponse(BaseModel):
+    id: uuid.UUID
+    code: str
+    name: str
+
+    class Config:
+        orm_mode = True
+
+class ArbitragerResponse(BaseModel):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
+
 class CreateDealRequest(BaseModel):
-    buyer_identifier: uuid.UUID  
-    deal_type: str  
-    price: Decimal  
-    fiat_currency_code: str  
-    crypto_currency_code: str 
-    fiat_amount: Decimal  
-    bank_code: Optional[str] = None  
-    network_code: Optional[str] = None  
-    crypto_address: Optional[str] = None  
-    arbitrator_id: Optional[str] = None  
+    buyer_identifier: uuid.UUID
+    deal_type: str
+    price: Decimal
+    fiat_currency_code: str
+    crypto_currency_code: str
+    fiat_amount: Decimal
+    bank_code: Optional[str] = None
+    network_code: Optional[str] = None
+    crypto_address: Optional[str] = None
+    arbitrator_id: Optional[str] = None
 
     @validator('deal_type')
     def validate_deal_type(cls, v):
@@ -30,17 +71,17 @@ class CreateDealRequest(BaseModel):
 
 class DealResponse(BaseModel):
     id: uuid.UUID
-    buyer_id: uuid.UUID
-    arbitrator_id: uuid.UUID | None
-    arbitrator_offer_id: uuid.UUID | None
-    fiat_currency_id: uuid.UUID
-    crypto_currency_id: uuid.UUID
+    buyer: UserResponse
+    arbitrator: Optional[ArbitragerResponse]
+    arbitrator_offer_id: Optional[uuid.UUID]
+    fiat_currency: CurrencyResponse
+    crypto_currency: CurrencyResponse
     fiat_amount: Decimal
     crypto_amount: Decimal
-    bank_id: uuid.UUID | None
-    network_id: uuid.UUID | None
-    crypto_address: str | None
-    status: str  
+    bank: Optional[BankResponse]
+    network: Optional[NetworkResponse]
+    crypto_address: Optional[str]
+    status: str
     created_at: datetime
     updated_at: datetime
 

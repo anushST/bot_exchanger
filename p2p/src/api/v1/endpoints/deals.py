@@ -58,7 +58,7 @@ async def create_deal(request: CreateDealRequest, db: AsyncSession = Depends(get
         crypto_address=request.crypto_address,
         status="PENDING"
     )
-
+    
     db.add(deal)
     await db.commit()
     await db.refresh(deal)

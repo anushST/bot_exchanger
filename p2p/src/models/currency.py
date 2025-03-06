@@ -1,9 +1,10 @@
 import uuid
 from datetime import datetime
-
+from sqlalchemy.orm import relationship
 from sqlalchemy import (
     Column, Boolean, DateTime, String, Enum, Table, ForeignKey)
 from sqlalchemy.orm import relationship
+from src.models.tables import arbitrator_offer_networks
 from sqlalchemy.dialects.postgresql import UUID
 
 from src.core.db import Base
@@ -33,8 +34,7 @@ class Currency(Base):
     updated_at = Column(DateTime, default=datetime.now,
                         onupdate=datetime.now, nullable=False)
 
-    networks = relationship("Network", secondary=currency_networks,
-                            back_populates="currencies", lazy='joined')
+    networks = relationship("Network", secondary=currency_networks,back_populates="currencies", lazy='joined')
 
 
 class Network(Base):
@@ -50,3 +50,5 @@ class Network(Base):
 
     currencies = relationship("Currency", secondary=currency_networks,
                               back_populates="networks", lazy='joined')
+    
+    offers = relationship("Offer", secondary=arbitrator_offer_networks,lazy="selectin",back_populates="networks")

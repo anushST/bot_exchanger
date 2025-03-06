@@ -4,7 +4,6 @@ from typing import Optional
 import uuid
 from datetime import datetime
 
-# Вложенные модели
 class UserResponse(BaseModel):
     id: uuid.UUID
     email: str

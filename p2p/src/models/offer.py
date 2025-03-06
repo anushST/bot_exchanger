@@ -5,18 +5,9 @@ from sqlalchemy import (
     Column, Boolean, DateTime, ForeignKey, DECIMAL, Enum, Table)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-
+from src.models.tables import arbitrator_offer_networks
 from src.core.db import Base
 from src.enums import OfferType
-
-
-arbitrator_offer_networks = Table(
-    'p2p_arbitrator_offer_networks',
-    Base.metadata,
-    Column('offer_id', UUID, ForeignKey('p2p_arbitrager_offers.id'),
-           primary_key=True),
-    Column('network_id', UUID, ForeignKey('p2p_networks.id'), primary_key=True)
-)
 
 
 class Offer(Base):
@@ -37,3 +28,6 @@ class Offer(Base):
     created_at = Column(DateTime, default=datetime.now, nullable=False)
     updated_at = Column(DateTime, default=datetime.now,
                         onupdate=datetime.now, nullable=False)
+    
+    networks = relationship("Network", secondary=arbitrator_offer_networks,lazy="selectin", back_populates="offers")
+    deals = relationship("Deal", back_populates="offer")

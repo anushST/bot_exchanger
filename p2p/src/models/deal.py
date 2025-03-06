@@ -50,3 +50,9 @@ class Deal(Base):
     crypto_currency = relationship("Currency", foreign_keys=[crypto_currency_id], lazy="joined")
     bank = relationship("Bank", lazy="joined")
     network = relationship("Network", lazy="joined")
+    offer = relationship(
+        "Offer", 
+        foreign_keys=[arbitrator_offer_id],
+        back_populates="deals",
+        lazy="joined"
+    )

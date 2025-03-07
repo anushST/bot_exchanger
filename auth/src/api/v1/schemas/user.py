@@ -17,4 +17,6 @@ class UserUpdate(BaseModel):
 
 
 class UserResponse(UserBase):
-    pass
+    is_email_confirmed: bool
+    is_active: bool
+    tg_id: Optional[int] = None

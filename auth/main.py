@@ -7,12 +7,12 @@ import os
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 
 from src.api.routers import main_router
 from src.core.db import engine as db, set_isolation_level
 from src.core.config import settings, LOGGING_CONFIG
 from src.models import init_models
-
 
 if not os.path.exists('logs'):
     os.makedirs('logs')
@@ -43,7 +43,7 @@ app.add_middleware(
     allow_methods=['*'],  # Разрешаем все методы (GET, POST, PUT, DELETE и т. д.)
     allow_headers=['*'],  # Разрешаем все заголовки
 )
-# app.add_middleware(TelegramAuthMiddleware)
+app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
 
 async def main():
@@ -53,7 +53,6 @@ async def main():
                             port=8002, reload=True, log_config=None)
     server = uvicorn.Server(config)
     await server.serve()
-
 
 if __name__ == '__main__':
     try:

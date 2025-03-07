@@ -36,7 +36,7 @@ class TransactionStatuses(PythonEnum):
 
 
 class Transaction(Base):
-    __tablename__ = 'transaction'
+    __tablename__ = 'transactions'
     # Transaction meta-data
     name = Column(String(6), unique=True, nullable=False)
     status_code = Column(Integer(), nullable=True)
@@ -44,7 +44,7 @@ class Transaction(Base):
         Enum(*[status.value for status in TransactionStatuses],
              name='transaction_statuses'),
         nullable=False, default=TransactionStatuses.NEW.value)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('user.id'),
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'),
                      nullable=False)
     exchanger = Column(String(255), nullable=True)
 

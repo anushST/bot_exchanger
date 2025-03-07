@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
-    Column, BigInteger, Enum, DateTime, String)
+    Column, BigInteger, Boolean, Enum, DateTime, String)
 from sqlalchemy.dialects.postgresql import UUID
 
 from src.core.db import Base
@@ -22,6 +22,8 @@ class User(Base):
                   nullable=False,
                   default=UserRole.USER.value)
     language = Column(String(2), nullable=False, default="ru")
+    is_active = Column(Boolean(), nullable=False, default=True)
+    is_email_confirmed = Column(Boolean(), nullable=False, default=False)
     last_active_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.now, nullable=False)
     updated_at = Column(DateTime, default=datetime.now,

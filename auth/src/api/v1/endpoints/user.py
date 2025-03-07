@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
@@ -35,12 +37,25 @@ async def get_current_user(
     user = result.scalars().first()
     if not user:
         raise credentials_exception
+
+    if not user.is_email_confirmed:
+        raise HTTPException(status_code=403, detail='Email is not confirmed')
+
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail='User is inactive')
+
+    user.last_active_at = datetime.now()
+    await session.commit()
+    await session.refresh(user)
     return user
 
 
 @router.get("/me", response_model=UserResponse, tags=['User'])
 def get_me(user: User = Depends(get_current_user)):
-    return UserResponse(email=user.email, full_name=user.full_name)
+    return UserResponse(
+        email=user.email, full_name=user.full_name,
+        tg_id=user.tg_id, is_email_confirmed=user.is_email_confirmed,
+        is_active=user.is_active)
 
 
 @router.put("/update", response_model=UserResponse, tags=['User'])
@@ -53,4 +68,7 @@ async def update_user(
     session.add(user)
     await session.commit()
     await session.refresh(user)
-    return UserResponse(email=user.email, full_name=user.full_name)
+    return UserResponse(
+        email=user.email, full_name=user.full_name,
+        tg_id=user.tg_id, is_email_confirmed=user.is_email_confirmed,
+        is_active=user.is_active)

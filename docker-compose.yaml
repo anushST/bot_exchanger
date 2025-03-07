@@ -24,13 +24,13 @@ services:
     ports:
       - 6379:6379
 
-  backend:
-    build: ./backend
+  exchanger-api:
+    build: ./exchanger
     restart: always
     depends_on:
       - db
       - redis
-    command: ["python", "main.py"]
+    command: ["python", "api_main.py"]
     environment:
       - ENV_STATE=dev
     ports:
@@ -67,7 +67,7 @@ services:
       - ./admin:/usr/src/app
 
   currencies:
-    build: ./exchangers
+    build: ./exchanger
     restart: always
     depends_on:
       - db
@@ -77,7 +77,7 @@ services:
       - ./exchangers:/usr/src/app
 
   transactions:
-    build: ./exchangers
+    build: ./exchanger
     restart: always
     depends_on:
       - db

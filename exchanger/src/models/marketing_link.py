@@ -9,7 +9,7 @@ class MarketingLink(Base):
     __tablename__ = "marketing_links"
 
     name = Column(String, unique=True, nullable=False)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("user.id"),
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"),
                      nullable=False)
 
     new_users = Column(Integer, default=0, nullable=False)

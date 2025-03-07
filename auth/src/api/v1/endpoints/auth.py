@@ -1,47 +1,20 @@
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .google_auth import router as google_router
+from .telegram_auth import router as telegram_router
 from src.api.v1 import schemas
-from src.core.config import settings
 from src.core.db import get_async_session
 from src.exceptions import ExpiredSignatureError, InvalidTokenError
 from src.models import User
 from src.utils import (refresh_access_token, get_password_hash,
-                       verify_password, create_tokens,
-                       verify_telegram_auth)
+                       verify_password, create_tokens, send_notification)
 
 router = APIRouter()
-
-
-@router.post('/telegram-auth', response_model=schemas.TokensResponse)
-async def auth_check(tg_data: schemas.TelegramAuthRequest,
-                     session: AsyncSession = Depends(get_async_session)
-                     ) -> schemas.TokensResponse:
-    data = tg_data.model_dump()
-    if not verify_telegram_auth(data, settings.TELEGRAM_BOT_TOKEN):
-        raise HTTPException(status_code=401, detail="Invalid Telegram data")
-
-    tg_user_id = int(data.get('id'))
-
-    query = select(User).where(User.tg_id == tg_user_id)
-    result = await session.execute(query)
-    user = result.scalars().first()
-
-    if not user:
-        user = User(
-            tg_id=tg_user_id, full_name=data.get('first_name')
-        )
-        session.add(user)
-        await session.commit()
-        await session.refresh(user)
-
-    tokens = create_tokens(user.id)
-
-    return schemas.TokensResponse(
-        access_token=tokens[0], refresh_token=tokens[1]
-    )
+router.include_router(google_router)
+router.include_router(telegram_router)
 
 
 @router.post("/refresh")
@@ -76,8 +49,14 @@ async def register_user(
     session.add(user)
     await session.commit()
     await session.refresh(user)
-    return schemas.UserResponse(email=user.email,
-                                full_name=user.full_name)
+
+    await send_notification(user.id, code=100, data={
+        'url': 'https://'
+    })
+    return schemas.UserResponse(
+        email=user.email, full_name=user.full_name,
+        tg_id=user.tg_id, is_email_confirmed=user.is_email_confirmed,
+        is_active=user.is_active)
 
 
 @router.post("/login/swagger", response_model=schemas.TokensResponse,

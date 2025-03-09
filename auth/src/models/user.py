@@ -32,6 +32,11 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.now,
                         onupdate=datetime.now, nullable=False)
 
+    arbitrager = relationship('Arbitrager', lazy='joined',
+                              back_populates='user')
+    moderator = relationship('Moderator', lazy='joined',
+                             back_populates='user')
+
 
 class Arbitrager(Base):
     __tablename__ = 'p2p_arbitragers'

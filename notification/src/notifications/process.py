@@ -38,12 +38,13 @@ async def consume():
 
 async def process_notification(data: NotificationMessage):
     async with get_async_session_generator() as session:
-        result = await session.execute(select(User).where(User.id == data.user_id))
+        result = await session.execute(
+            select(User).where(User.id == data.user_id)
+        )
         user = result.scalars().first()
-        print(user)
         if not user:
             return
 
-    if data.code == 100:  # Email Confirmation
+    if data.code == 100:
         print('message_sent')
-        await send_mail('anushervon.s.06@gmail.com', 'message', 'hithere')
+        await send_mail(user.email, 'Email Confirm', f'{data.data.get('url')}')

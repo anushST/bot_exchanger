@@ -16,7 +16,7 @@ from src.utils import decode_token
 router = APIRouter()
 
 
-async def get_current_user(
+async def _get_current_user(
         token: str = Depends(OAuth2PasswordBearer(
             tokenUrl='/api/v1/auth/login/swagger')),
         session: AsyncSession = Depends(get_async_session)):
@@ -40,15 +40,18 @@ async def get_current_user(
     if not user:
         raise credentials_exception
 
+    user.last_active_at = datetime.now()
+    await session.commit()
+    await session.refresh(user)
+    return user
+
+
+async def get_current_user(user: User = Depends(_get_current_user)):
     if not user.is_email_confirmed:
         raise HTTPException(status_code=403, detail='Email is not confirmed')
 
     if not user.is_active:
         raise HTTPException(status_code=403, detail='User is inactive')
-
-    user.last_active_at = datetime.now()
-    await session.commit()
-    await session.refresh(user)
     return user
 
 

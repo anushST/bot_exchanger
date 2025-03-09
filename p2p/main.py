@@ -38,12 +38,11 @@ app.include_router(main_router, prefix='/api')
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=['*'],  # Разрешаем все источники
+    allow_origins=['*'],
     allow_credentials=True,
-    allow_methods=['*'],  # Разрешаем все методы (GET, POST, PUT, DELETE и т. д.)
-    allow_headers=['*'],  # Разрешаем все заголовки
+    allow_methods=['*'],
+    allow_headers=['*'],
 )
-# app.add_middleware(TelegramAuthMiddleware)
 
 
 async def main():

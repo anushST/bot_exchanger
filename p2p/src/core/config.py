@@ -14,16 +14,14 @@ ENV_FILES = [
 class Settings(BaseSettings):
     app_title: str = 'CipherSwap'
     app_description: str = 'Описание проекта'
-    secret: str = 'SECRET'
-    token:str
     DATABASE_URL: str
     ADMIN_TOKEN: str
     TIMEZONE: Optional[str] = 'Europe/Moscow'
     FFIO_APIKEY: str
     FFIO_SECRET: str
     DOMAIN: str
-    # TELEGRAM_BOT_TOKEN: str
-    # SECRET_KEY: str
+    TELEGRAM_BOT_TOKEN: str
+    SECRET_KEY: str
 
     REDIS_HOST: Optional[str] = 'localhost'
     REDIS_PORT: Optional[str] = '6379'

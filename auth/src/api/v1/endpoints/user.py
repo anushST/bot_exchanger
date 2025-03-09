@@ -4,10 +4,12 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 
 from src.api.v1.schemas import UserResponse, UserUpdate
 from src.core.db import get_async_session
-from src.models import User
+from src.enums import UserRole
+from src.models import User, Arbitrager
 from src.exceptions import ExpiredSignatureError, InvalidTokenError
 from src.utils import decode_token
 
@@ -48,6 +50,27 @@ async def get_current_user(
     await session.commit()
     await session.refresh(user)
     return user
+
+
+@router.patch('/become-arbitrager', tags=['User'])
+async def become_arbitrager(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session)
+):
+    try:
+        user.role = UserRole.ARBITRAGER.value
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+
+        arbitrager = Arbitrager(user_id=user.id)
+        session.add(arbitrager)
+        await session.commit()
+        await session.refresh(arbitrager)
+
+        return {'detail': 'You are succesfully became an arbitrager'}
+    except IntegrityError:
+        raise HTTPException(400, 'You are already an arbitrager')
 
 
 @router.get("/me", response_model=UserResponse, tags=['User'])

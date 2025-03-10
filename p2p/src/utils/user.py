@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.db import get_async_session
+from src.core.config import settings
 from src.models import User
 from src.exceptions import ExpiredSignatureError, InvalidTokenError
 from src.enums import UserRole
@@ -16,7 +17,7 @@ router = APIRouter()
 
 async def get_current_user(
         token: str = Depends(OAuth2PasswordBearer(
-            tokenUrl='http://localhost:8002/api/v1/auth/login/swagger')),
+            tokenUrl=f'https://{settings.DOMAIN}/api/v1/auth/login/swagger')),
         session: AsyncSession = Depends(get_async_session)):
     credentials_exception = HTTPException(
         status_code=401,

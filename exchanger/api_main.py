@@ -50,7 +50,7 @@ async def main():
     #     await load_csv_data(session, 'user.csv', 'transaction.csv')
 
     config = uvicorn.Config('api_main:app', host='0.0.0.0',
-                            port=8002, reload=True, log_config=None)
+                            port=8000, reload=True, log_config=None)
     server = uvicorn.Server(config)
     await server.serve()
 

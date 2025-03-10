@@ -19,7 +19,7 @@ router = APIRouter()
 router.include_router(google_router)
 router.include_router(telegram_router)
 
-CONFIRM_URL = f'http://localhost:8002/api/v1/auth/verify-email'
+CONFIRM_URL = f'http://{settings.DOMAIN}/api/v1/auth/verify-email'
 
 
 @router.post("/refresh")

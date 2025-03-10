@@ -2,7 +2,9 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
-    Column, BigInteger, Enum, DateTime, String, Table, ForeignKey)
+    Column, BigInteger, Boolean, Enum, DateTime, String,
+    ForeignKey
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 
@@ -23,34 +25,40 @@ class User(Base):
                   nullable=False,
                   default=UserRole.USER.value)
     language = Column(String(2), nullable=False, default="ru")
+    is_active = Column(Boolean(), nullable=False, default=True)
+    is_email_confirmed = Column(Boolean(), nullable=False, default=False)
     last_active_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.now, nullable=False)
     updated_at = Column(DateTime, default=datetime.now,
                         onupdate=datetime.now, nullable=False)
 
-
-arbitrager_banks = Table(
-    'p2p_arbitrager_banks',
-    Base.metadata,
-    Column('arbitrator_id', UUID, ForeignKey('p2p_arbitragers.id'),
-           primary_key=True),
-    Column('bank_id', UUID, ForeignKey('p2p_banks.id'), primary_key=True)
-)
+    arbitrager = relationship('Arbitrager', lazy='joined',
+                              back_populates='user')
+    moderator = relationship('Moderator', lazy='joined',
+                             back_populates='user')
 
 
 class Arbitrager(Base):
     __tablename__ = 'p2p_arbitragers'
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4,
                 unique=True, nullable=False)
+    user_id = Column(UUID, ForeignKey('users.id'), nullable=False,
+                     unique=True)
     created_at = Column(DateTime, default=datetime.now, nullable=False)
     updated_at = Column(DateTime, default=datetime.now,
                         onupdate=datetime.now, nullable=False)
+
+    user = relationship('User', lazy='joined')
 
 
 class Moderator(Base):
     __tablename__ = 'p2p_moderators'
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4,
                 unique=True, nullable=False)
+    user_id = Column(UUID, ForeignKey('users.id'), nullable=False,
+                     unique=True)
     created_at = Column(DateTime, default=datetime.now, nullable=False)
     updated_at = Column(DateTime, default=datetime.now,
                         onupdate=datetime.now, nullable=False)
+
+    user = relationship('User', lazy='joined')

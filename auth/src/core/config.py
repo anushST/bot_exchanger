@@ -1,6 +1,14 @@
+import os
 from typing import Optional
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+ENV_STATE = os.getenv("ENV_STATE", "dev")
+
+ENV_FILES = [
+    "env/.env",
+    f"env/.env.{ENV_STATE}"
+]
 
 
 class Settings(BaseSettings):
@@ -16,12 +24,21 @@ class Settings(BaseSettings):
     DOMAIN: str
     SECRET_KEY: str
 
+    SMTP_SERVER: str
+    SMTP_PORT: int
+    SMTP_EMAIL: str
+    SMTP_EMAIL_PASSWORD: str
+
+    GOOGLE_CLIENT_ID: str
+    GOOGLE_CLIENT_SECRET: str
+
     REDIS_HOST: Optional[str] = 'localhost'
     REDIS_PORT: Optional[str] = '6379'
     REDIS_DATABASE: Optional[int] = 0
 
-    class Config:
-        env_file = '.env'
+    KAFKA_BOOTSTRAP_SERVICE: str = 'localhost:9092'
+
+    model_config = SettingsConfigDict(env_file=ENV_FILES, extra="ignore")
 
 
 LOGGING_CONFIG = {

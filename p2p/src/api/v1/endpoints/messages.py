@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.api.v1.schemas.message import MessageCreate, MessageRead
 from src.models import User
 from src.core.db import get_async_session
-from src.api.services.message import (
+from src.api.v1.services.message import (
     create_message, get_messages_by_deal, mark_message_read)
 from src.utils import get_current_user
 

@@ -1,88 +1,32 @@
-from pydantic import BaseModel, validator
-from pydantic.types import Decimal
-from typing import Optional
-import uuid
+from decimal import Decimal
 from datetime import datetime
 
-class UserResponse(BaseModel):
-    id: uuid.UUID
-    email: str
-    role: str
+from pydantic import BaseModel, ConfigDict, UUID4
 
-    class Config:
-        orm_mode = True
 
-class CurrencyResponse(BaseModel):
-    id: uuid.UUID
-    code: str
-    name: str
-
-    class Config:
-        orm_mode = True
-
-class BankResponse(BaseModel):
-    id: uuid.UUID
-    code: str
-    name: str
-
-    class Config:
-        orm_mode = True
-
-class NetworkResponse(BaseModel):
-    id: uuid.UUID
-    code: str
-    name: str
-
-    class Config:
-        orm_mode = True
-
-class ArbitragerResponse(BaseModel):
-    id: uuid.UUID
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        orm_mode = True
-
-class CreateDealRequest(BaseModel):
-    buyer_identifier: uuid.UUID
-    deal_type: str
-    price: Decimal
-    fiat_currency_code: str
-    crypto_currency_code: str
-    fiat_amount: Decimal
-    bank_code: Optional[str] = None
-    network_code: Optional[str] = None
-    crypto_address: Optional[str] = None
-    arbitrator_id: Optional[str] = None
-
-    @validator('deal_type')
-    def validate_deal_type(cls, v):
-        if v not in ["buy", "sell"]:
-            raise ValueError('deal_type должен быть "buy" или "sell"')
-        return v
-
-    @validator('price', 'fiat_amount')
-    def must_be_positive(cls, v):
-        if v <= 0:
-            raise ValueError('price и fiat_amount должны быть положительными')
-        return v
-
-class DealResponse(BaseModel):
-    id: uuid.UUID
-    buyer: UserResponse
-    arbitrator: Optional[ArbitragerResponse]
-    arbitrator_offer_id: Optional[uuid.UUID]
-    fiat_currency: CurrencyResponse
-    crypto_currency: CurrencyResponse
+class DealBase(BaseModel):
+    buyer_id: UUID4
+    arbitrator_id: UUID4
+    arbitrator_offer_id: UUID4
+    fiat_currency_id: UUID4
+    crypto_currency_id: UUID4
     fiat_amount: Decimal
     crypto_amount: Decimal
-    bank: Optional[BankResponse]
-    network: Optional[NetworkResponse]
-    crypto_address: Optional[str]
+    bank_id: UUID4
+    network_id: UUID4
+    crypto_address: UUID4
     status: str
+
+
+class DealCreate(DealBase):
+    pass
+
+
+class DealResponse(DealBase):
+    id: UUID4
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(
+        from_attributes=True
+    )

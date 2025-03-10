@@ -24,7 +24,6 @@ async def send_notification(user_id: uuid.UUID, code: int, data: dict):
         )
         kafka_producer = AIOKafkaProducer(
             bootstrap_servers='localhost:9092',
-            value_serializer=lambda v: json.dumps(str(v)).encode('utf-8')
         )
         json_data = message.model_dump_json()
         await kafka_producer.start()

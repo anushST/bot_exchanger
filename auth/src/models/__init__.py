@@ -1,7 +1,7 @@
 # flake8: noqa: F401
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from .user import User, UserRole
+from .user import User, Arbitrager, Moderator
 from src.core.db import Base
 
 

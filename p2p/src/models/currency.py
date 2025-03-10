@@ -1,10 +1,11 @@
 import uuid
 from datetime import datetime
-from sqlalchemy.orm import relationship
+
 from sqlalchemy import (
-    Column, Boolean, DateTime, String, Enum, Table, ForeignKey)
+    Column, Boolean, DateTime, String, Enum, Table, ForeignKey,
+    UniqueConstraint)
 from sqlalchemy.orm import relationship
-from src.models.tables import arbitrator_offer_networks
+from src.models.offer import arbitrator_offer_networks
 from sqlalchemy.dialects.postgresql import UUID
 
 from src.core.db import Base
@@ -34,7 +35,12 @@ class Currency(Base):
     updated_at = Column(DateTime, default=datetime.now,
                         onupdate=datetime.now, nullable=False)
 
-    networks = relationship("Network", secondary=currency_networks,back_populates="currencies", lazy='joined')
+    __table_args__ = (
+        UniqueConstraint('code', 'type', name='uq_code_type'),
+    )
+
+    networks = relationship("Network", secondary=currency_networks,
+                            back_populates="currencies", lazy='joined')
 
 
 class Network(Base):
@@ -42,7 +48,7 @@ class Network(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4,
                 unique=True, nullable=False)
     name = Column(String, nullable=False)
-    code = Column(String, nullable=False)
+    code = Column(String, nullable=False, unique=True)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.now, nullable=False)
     updated_at = Column(DateTime, default=datetime.now,
@@ -50,5 +56,6 @@ class Network(Base):
 
     currencies = relationship("Currency", secondary=currency_networks,
                               back_populates="networks", lazy='joined')
-    
-    offers = relationship("Offer", secondary=arbitrator_offer_networks,lazy="selectin",back_populates="networks")
+
+    offers = relationship("Offer", secondary=arbitrator_offer_networks,
+                          lazy="selectin", back_populates="networks")

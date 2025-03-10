@@ -2,12 +2,32 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
-    Column, Boolean, DateTime, ForeignKey, DECIMAL, Enum, Table)
+    Column, Boolean, DateTime, ForeignKey, DECIMAL, Enum,
+    Table
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from src.models.tables import arbitrator_offer_networks
+
 from src.core.db import Base
 from src.enums import OfferType
+
+arbitrator_offer_networks = Table(
+    'p2p_arbitrager_offer_networks',
+    Base.metadata,
+    Column('offer_id', UUID, ForeignKey('p2p_arbitrager_offers.id'),
+           primary_key=True),
+    Column('network_id', UUID, ForeignKey('p2p_networks.id'),
+           primary_key=True)
+)
+
+arbitrator_offer_banks = Table(
+    'p2p_arbitrager_offer_banks',
+    Base.metadata,
+    Column('offer_id', UUID, ForeignKey('p2p_arbitrager_offers.id'),
+           primary_key=True),
+    Column('bank_id', UUID, ForeignKey('p2p_banks.id'),
+           primary_key=True)
+)
 
 
 class Offer(Base):
@@ -28,6 +48,18 @@ class Offer(Base):
     created_at = Column(DateTime, default=datetime.now, nullable=False)
     updated_at = Column(DateTime, default=datetime.now,
                         onupdate=datetime.now, nullable=False)
-    
-    networks = relationship("Network", secondary=arbitrator_offer_networks,lazy="selectin", back_populates="offers")
+
+    networks = relationship(
+        "Network", secondary=arbitrator_offer_networks,
+        lazy="joined", back_populates="offers"
+    )
+    banks = relationship(
+        'Bank', secondary=arbitrator_offer_banks, lazy='joined'
+    )
+    fiat_currency = relationship(
+        "Currency", foreign_keys=[fiat_currency_id], lazy="joined"
+    )
+    crypto_currency = relationship(
+        "Currency", foreign_keys=[crypto_currency_id], lazy="joined"
+    )
     deals = relationship("Deal", back_populates="offer")

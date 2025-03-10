@@ -1,63 +1,46 @@
-from pydantic import BaseModel
-from uuid import UUID
-from typing import List, Optional
-from datetime import datetime
+from decimal import Decimal
+from typing import Optional
 
-class NetworkSchema(BaseModel):
-    id: UUID
-    name: str
-    code: str
+from pydantic import BaseModel, UUID4, ConfigDict
+
+from .bank import BankResponse
+from .currency import CurrencyResponse
+from .network import NetworkResponse
+from src.enums import OfferType
+
+
+class OfferBase(BaseModel):
+    fiat_currency_id: UUID4
+    crypto_currency_id: UUID4
+    type: OfferType
+    price: Decimal
+
+
+class OfferCreate(OfferBase):
     is_active: bool
+    network_ids: list[UUID4]
+    bank_ids: list[UUID4]
 
-    class Config:
-        orm_mode = True
 
-class OfferCreateSchema(BaseModel):
-    fiat_currency_id: UUID
-    crypto_currency_id: UUID
-    type: str  
-    price: float
-    network_ids: List[UUID]  
-    
-class OfferUpdateSchema(BaseModel):
-    price: Optional[float] = None
+class OfferUpdate(BaseModel):
+    arbitrator_id: Optional[UUID4] = None
+    fiat_currency_id: Optional[UUID4] = None
+    crypto_currency_id: Optional[UUID4] = None
+    type: Optional[OfferType] = None
+    price: Optional[Decimal] = None
     is_active: Optional[bool] = None
-    network_ids: Optional[List[UUID]] = None
+    network_ids: Optional[list[UUID4]] = None
+    bank_ids: Optional[list[UUID4]] = None
 
-class OfferSchema(BaseModel):
-    id: UUID
-    arbitrator_id: UUID
-    fiat_currency_id: UUID
-    crypto_currency_id: UUID
-    type: str
-    price: float
-    is_active: bool
-    created_at: datetime
-    updated_at: datetime
-    networks: List[NetworkSchema]
 
-    class Config:
-        orm_mode = True
+class OfferResponse(OfferBase):
+    id: UUID4
+    arbitrager: BaseModel
+    fiat_currency: CurrencyResponse
+    crypto_currency: CurrencyResponse
+    networks: list[NetworkResponse]
+    banks: list[BankResponse]
 
-class DealSchema(BaseModel):
-    id: UUID
-    buyer_id: UUID
-    arbitrator_id: Optional[UUID]
-    arbitrator_offer_id: Optional[UUID]
-    fiat_currency_id: UUID
-    crypto_currency_id: UUID
-    fiat_amount: float
-    crypto_amount: float
-    bank_id: Optional[UUID]
-    network_id: Optional[UUID]
-    status: str
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        orm_mode = True
-
-class StatisticsSchema(BaseModel):
-    total_deals: int
-    total_fiat: float
-    total_crypto: float
+    model_config = ConfigDict(
+        from_attributes=True
+    )

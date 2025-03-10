@@ -4,7 +4,7 @@ from enum import Enum
 class UserRole(str, Enum):
     USER = "USER"
     MODERATOR = "MODERATOR"
-    ARBITRATOR = "ARBITRATOR"
+    ARBITRAGER = "ARBITRAGER"
 
 
 class ModerationStatus(str, Enum):

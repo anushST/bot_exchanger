@@ -30,8 +30,8 @@ async def validate_offer_data(offer, session: AsyncSession):
     if offer.crypto_currency_id:
         result = await session.execute(
             select(Currency)
-            .where(Currency.id == offer.crypto_currency_id &
-                   Currency.type == CurrencyType.CRYPTO.value)
+            .where((Currency.id == offer.crypto_currency_id) &
+                   (Currency.type == CurrencyType.CRYPTO.value))
         )
         if not result.scalars().first():
             raise HTTPException(
@@ -47,14 +47,6 @@ async def create_offer(
 ):
     await validate_offer_data(offer, session)
 
-    db_offer = Offer(
-        arbitrager_id=arbitrager.id,
-        **offer.model_dump(exclude={'network_ids', 'bank_ids'})
-    )
-    session.add(db_offer)
-    await session.commit()
-    await session.refresh(db_offer)
-
     result = await session.execute(
         select(Network).where(Network.id.in_(offer.network_ids)))
     networks = result.unique().scalars().all()
@@ -62,7 +54,6 @@ async def create_offer(
         raise HTTPException(
             400, 'Networks not found. Select networks'
         )
-    db_offer.networks = networks
 
     result = await session.execute(
         select(Bank).where(Bank.id.in_(offer.bank_ids)))
@@ -71,10 +62,16 @@ async def create_offer(
         raise HTTPException(
             400, 'Banks not found. Select banks'
         )
-    db_offer.banks = banks
-    await session.commit()
-    await session.refresh()
 
+    db_offer = Offer(
+        arbitrager_id=arbitrager.id,
+        **offer.model_dump(exclude={'network_ids', 'bank_ids'})
+    )
+    db_offer.networks = networks
+    db_offer.banks = banks
+    session.add(db_offer)
+    await session.commit()
+    await session.refresh(db_offer)
     return db_offer
 
 
@@ -111,7 +108,7 @@ async def update_offer(
 ):
     result = await session.execute(
         select(Offer)
-        .where(Offer.id == offer_id & Offer.arbitrator_id == arbitrager.id)
+        .where((Offer.id == offer_id) & (Offer.arbitrager_id == arbitrager.id))
     )
     db_offer = result.scalars().first()
     if not db_offer:
@@ -143,8 +140,8 @@ async def update_offer(
                 400, 'Banks not found. Select banks'
             )
         db_offer.banks = banks
-        await session.commit()
-        await session.refresh()
+    await session.commit()
+    await session.refresh(db_offer)
 
     return db_offer
 

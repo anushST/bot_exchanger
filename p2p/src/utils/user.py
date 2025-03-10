@@ -17,7 +17,7 @@ router = APIRouter()
 
 async def get_current_user(
         token: str = Depends(OAuth2PasswordBearer(
-            tokenUrl=f'https://{settings.DOMAIN}/api/v1/auth/login/swagger')),
+            tokenUrl=f'http://{settings.DOMAIN}/api/v1/auth/login/swagger')),
         session: AsyncSession = Depends(get_async_session)):
     credentials_exception = HTTPException(
         status_code=401,

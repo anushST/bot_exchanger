@@ -35,7 +35,7 @@ class Offer(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4,
                 unique=True, nullable=False)
-    arbitrator_id = Column(UUID, ForeignKey('p2p_arbitragers.id'),
+    arbitrager_id = Column(UUID, ForeignKey('p2p_arbitragers.id'),
                            nullable=False)
     fiat_currency_id = Column(UUID, ForeignKey('p2p_currencies.id'),
                               nullable=False)
@@ -49,6 +49,9 @@ class Offer(Base):
     updated_at = Column(DateTime, default=datetime.now,
                         onupdate=datetime.now, nullable=False)
 
+    arbitrager = relationship(
+        'Arbitrager', lazy='joined'
+    )
     networks = relationship(
         "Network", secondary=arbitrator_offer_networks,
         lazy="joined", back_populates="offers"

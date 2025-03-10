@@ -33,9 +33,9 @@ class User(Base):
                         onupdate=datetime.now, nullable=False)
 
     arbitrager = relationship('Arbitrager', lazy='joined',
-                              back_populates='user')
+                              back_populates='user', uselist=False)
     moderator = relationship('Moderator', lazy='joined',
-                             back_populates='user')
+                             back_populates='user', uselist=False)
 
 
 class Arbitrager(Base):

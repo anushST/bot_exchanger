@@ -1,11 +1,11 @@
-import json
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
 from aiokafka import AIOKafkaProducer
-
 from pydantic import BaseModel, UUID4
+
+from src.core.config import settings
 
 NOTIFICATION_TOPIK = 'notifications'
 
@@ -23,7 +23,7 @@ async def send_notification(user_id: uuid.UUID, code: int, data: dict):
             user_id=user_id, code=code, data=data
         )
         kafka_producer = AIOKafkaProducer(
-            bootstrap_servers='localhost:9092',
+            bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVICE,
         )
         json_data = message.model_dump_json()
         await kafka_producer.start()

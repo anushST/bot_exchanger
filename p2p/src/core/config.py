@@ -14,6 +14,7 @@ ENV_FILES = [
 class Settings(BaseSettings):
     DATABASE_URL: str
     DOMAIN: str
+    SECRET_KEY: str
 
     REDIS_HOST: Optional[str] = 'redis'
     REDIS_PORT: Optional[str] = '6379'

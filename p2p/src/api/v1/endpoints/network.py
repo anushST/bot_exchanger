@@ -2,6 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.future import select
 
 from src.core.db import get_async_session
@@ -16,11 +17,15 @@ router = APIRouter()
 @router.post("/", response_model=NetworkResponse)
 async def create_network(network: NetworkCreate,
                          session: AsyncSession = Depends(get_async_session)):
-    db_network = Network(**network.model_dump())
-    session.add(db_network)
-    await session.commit()
-    await session.refresh(db_network)
-    return db_network
+    try:
+        db_network = Network(**network.model_dump())
+        session.add(db_network)
+        await session.commit()
+        await session.refresh(db_network)
+        return db_network
+    except IntegrityError:
+        raise HTTPException(
+            400, detail='The currency with code already exists.')
 
 
 @router.get("/", response_model=PaginatedResponse[NetworkResponse])
@@ -50,16 +55,20 @@ async def get_network(network_id: uuid.UUID,
 @router.patch("/{network_id}", response_model=NetworkResponse)
 async def update_network(network_id: uuid.UUID, network: NetworkUpdate,
                          session: AsyncSession = Depends(get_async_session)):
-    result = await session.execute(select(
-        Network).where(Network.id == network_id))
-    db_network = result.scalars().first()
-    if not db_network:
-        raise HTTPException(status_code=404, detail="Network not found")
-    for key, value in network.model_dump(exclude_none=True).items():
-        setattr(db_network, key, value)
-    await session.commit()
-    await session.refresh(db_network)
-    return db_network
+    try:
+        result = await session.execute(select(
+            Network).where(Network.id == network_id))
+        db_network = result.scalars().first()
+        if not db_network:
+            raise HTTPException(status_code=404, detail="Network not found")
+        for key, value in network.model_dump(exclude_none=True).items():
+            setattr(db_network, key, value)
+        await session.commit()
+        await session.refresh(db_network)
+        return db_network
+    except IntegrityError:
+        raise HTTPException(
+            400, detail='The currency with code already exists.')
 
 
 @router.delete("/{network_id}")

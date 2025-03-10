@@ -10,6 +10,21 @@ from src.exceptions import ExpiredSignatureError, InvalidTokenError
 ALGORITHM = "HS256"
 ACCESS_EXPIRE_MINUTES = 15
 REFRESH_EXPIRE_MINUTES = 30 * 24 * 60
+MAIL_EXPIRE_MINUTES = 15
+
+
+def create_mail_token(
+    mail: str, expire: Optional[int] = MAIL_EXPIRE_MINUTES
+) -> str:
+    access_payload = {
+        "email": mail,
+        "salt": str(uuid.uuid4()),
+    }
+    if expire:
+        access_payload.update(
+            exp=datetime.now(tz=timezone.utc) + timedelta(minutes=expire)
+        )
+    return jwt.encode(access_payload, settings.SECRET_KEY, algorithm=ALGORITHM)
 
 
 def create_token(

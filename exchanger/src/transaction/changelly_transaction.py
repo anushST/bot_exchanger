@@ -114,6 +114,9 @@ class ChangellyTransaction:
                         refundAddress=transaction.refund_address,
                         refundExtraId=transaction.refund_tag_value
                     )
+                    response = await changelly_client.create_fixed_transaction(
+                        data
+                    )
                 else:
                     data = schemas.CreateFloatTransaction(
                         from_=fromCcy.code,
@@ -122,9 +125,9 @@ class ChangellyTransaction:
                         extraId=transaction.tag_value,
                         amountFrom=str(transaction.amount),
                     )
-                response = await changelly_client.create_float_transaction(
-                    data
-                )
+                    response = await changelly_client.create_float_transaction(
+                        data
+                    )
                 logger.info(response)
             except api_ex.InvalidAddressError:
                 error_status_code = tc.INVALID_ADDRESS_CODE

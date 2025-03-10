@@ -43,15 +43,17 @@ class Deal(Base):
 
     messages = relationship('ChatMessage', back_populates='deal',
                             cascade='all, delete-orphan')
-    
+
     buyer = relationship("User", lazy="joined")
     arbitrator = relationship("Arbitrager", lazy="joined")
-    fiat_currency = relationship("Currency", foreign_keys=[fiat_currency_id], lazy="joined")
-    crypto_currency = relationship("Currency", foreign_keys=[crypto_currency_id], lazy="joined")
+    fiat_currency = relationship("Currency", foreign_keys=[fiat_currency_id],
+                                 lazy="joined")
+    crypto_currency = relationship(
+        "Currency", foreign_keys=[crypto_currency_id], lazy="joined")
     bank = relationship("Bank", lazy="joined")
     network = relationship("Network", lazy="joined")
     offer = relationship(
-        "Offer", 
+        "Offer",
         foreign_keys=[arbitrator_offer_id],
         back_populates="deals",
         lazy="joined"

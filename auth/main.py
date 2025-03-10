@@ -31,8 +31,7 @@ async def init_db():
         raise
 
 app = FastAPI(docs_url='/docs/auth/swagger',
-              openapi_url='/docs/auth/openapi.json',
-              title=settings.app_title)
+              openapi_url='/docs/auth/openapi.json')
 
 app.include_router(main_router, prefix='/api')
 

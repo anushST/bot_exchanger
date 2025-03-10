@@ -6,7 +6,7 @@ main_router = APIRouter()
 
 
 main_router.include_router(
-    endpoints.admin_statistics_router, prefix='/', tags=['Statistics']
+    endpoints.admin_statistics_router, tags=['Statistics']
 )
 main_router.include_router(
     endpoints.admin_marketing_link_router, prefix='/marketing_links',

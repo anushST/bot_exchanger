@@ -30,9 +30,8 @@ async def init_db():
                         exc_info=True)
         raise
 
-app = FastAPI(docs_url='/docs/backend/swagger',
-              openapi_url='/docs/backend/openapi.json',
-              title=settings.app_title)
+app = FastAPI(docs_url='/docs/exchanger/swagger',
+              openapi_url='/docs/exchanger/openapi.json')
 
 app.include_router(main_router, prefix='/exchanger/api/v1')
 

@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.routers import main_router
 from src.core.db import engine as db, set_isolation_level
-from src.core.config import settings, LOGGING_CONFIG
+from src.core.config import LOGGING_CONFIG
 from src.models import init_models
 
 
@@ -31,8 +31,7 @@ async def init_db():
         raise
 
 app = FastAPI(docs_url='/docs/p2p/swagger',
-              openapi_url='/docs/p2p/openapi.json',
-              title=settings.app_title)
+              openapi_url='/docs/p2p/openapi.json')
 
 app.include_router(main_router, prefix='/api')
 

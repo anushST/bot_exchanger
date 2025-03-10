@@ -24,72 +24,6 @@ services:
     ports:
       - 6379:6379
 
-  exchanger-api:
-    build: ./exchanger
-    restart: always
-    depends_on:
-      - db
-      - redis
-    command: ["python", "api_main.py"]
-    environment:
-      - ENV_STATE=dev
-    ports:
-      - 8000:8000
-    volumes:
-      - ./backend:/usr/src/app
-
-  auth:
-    build: ./auth
-    restart: always
-    depends_on:
-      - db
-      - redis
-    command: ["python", "main.py"]
-    environment:
-      - ENV_STATE=dev
-    ports:
-      - 8002:8002
-    volumes:
-      - ./auth:/usr/src/app
-
-  admin:
-    build: ./admin
-    restart: always
-    depends_on:
-      - db
-      - redis
-    command: ["python", "main.py"]
-    environment:
-      - ENV_STATE=dev
-    ports:
-      - 8001:8001
-    volumes:
-      - ./admin:/usr/src/app
-
-  currencies:
-    build: ./exchanger
-    restart: always
-    depends_on:
-      - db
-      - redis
-    command: [ "python", "currencies_main.py"]
-    environment:
-      - ENV_STATE=prod
-    volumes:
-      - ./exchangers:/usr/src/app
-
-  transactions:
-    build: ./exchanger
-    restart: always
-    depends_on:
-      - db
-      - redis
-    command: [ "python", "transactions_main.py"]
-    environment:
-      - ENV_STATE=prod
-    volumes:
-      - ./exchangers:/usr/src/app
-
   db:
     container_name: "db"
     image:  pgvector/pgvector:pg16
@@ -102,3 +36,102 @@ services:
       - "5400:5432"
     volumes:
       - ./db/data:/var/lib/postgresql/data
+
+  exchanger-api:
+    build: ./exchanger
+    restart: always
+    depends_on:
+      - db
+      - redis
+      - kafka
+    command: ["python", "api_main.py"]
+    environment:
+      - ENV_STATE=dev
+    ports:
+      - 8000:8000
+    volumes:
+      - ./exchanger:/usr/src/app
+
+  auth:
+    build: ./auth
+    restart: always
+    depends_on:
+      - db
+      - redis
+      - kafka
+    command: ["python", "main.py"]
+    environment:
+      - ENV_STATE=dev
+    ports:
+      - 8100:8100
+    volumes:
+      - ./auth:/usr/src/app
+
+  admin:
+    build: ./admin
+    restart: always
+    depends_on:
+      - db
+      - redis
+      - kafka
+    command: ["python", "main.py"]
+    environment:
+      - ENV_STATE=dev
+    ports:
+      - 8200:8200
+    volumes:
+      - ./admin:/usr/src/app
+    
+  p2p:
+    build: ./p2p
+    restart: always
+    depends_on:
+      - db
+      - redis
+      - kafka
+    command: [ "python", "main.py"]
+    environment:
+      - ENV_STATE=dev
+    ports:
+      - 8300:8300
+    volumes:
+      - ./p2p:/usr/src/app
+
+  notification:
+    build: ./notification
+    restart: always
+    depends_on:
+      - db
+      - redis
+      - kafka
+    command: [ "python", "main.py"]
+    environment:
+      - ENV_STATE=dev
+    volumes:
+      - ./notification:/usr/src/app
+
+  currencies:
+    build: ./exchanger
+    restart: always
+    depends_on:
+      - db
+      - redis
+      - kafka
+    command: [ "python", "currencies_main.py"]
+    environment:
+      - ENV_STATE=dev
+    volumes:
+      - ./exchanger:/usr/src/app
+
+  transactions:
+    build: ./exchanger
+    restart: always
+    depends_on:
+      - db
+      - redis
+      - kafka
+    command: [ "python", "transactions_main.py"]
+    environment:
+      - ENV_STATE=dev
+    volumes:
+      - ./exchanger:/usr/src/app

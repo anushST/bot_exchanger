@@ -13,7 +13,6 @@ from src.core.db import (engine as db, set_isolation_level,
                          get_async_session_generator)
 from src.core.config import settings, LOGGING_CONFIG
 from src.fake_data import generate_transactions
-from src.middlewares import TelegramAuthMiddleware
 from src.models import init_models
 
 if not os.path.exists('logs'):
@@ -36,7 +35,7 @@ app = FastAPI(docs_url='/docs/admin/swagger',
               openapi_url='/docs/admin/openapi.json',
               title=settings.app_title)
 
-app.include_router(main_router, prefix='/api/v1')
+app.include_router(main_router, prefix='/api/v1/admin')
 
 app.add_middleware(
     CORSMiddleware,
@@ -45,7 +44,6 @@ app.add_middleware(
     allow_methods=['*'],
     allow_headers=['*'],
 )
-# app.add_middleware(TelegramAuthMiddleware)
 
 
 async def main():
@@ -54,7 +52,7 @@ async def main():
     #     await generate_transactions(session)
 
     config = uvicorn.Config('main:app', host='0.0.0.0',
-                            port=8002, reload=True, log_config=None)
+                            port=8200, reload=True, log_config=None)
     server = uvicorn.Server(config)
     await server.serve()
 

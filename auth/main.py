@@ -50,7 +50,7 @@ async def main():
     await init_db()
 
     config = uvicorn.Config('main:app', host='0.0.0.0',
-                            port=8002, reload=True, log_config=None)
+                            port=8100, reload=True, log_config=None)
     server = uvicorn.Server(config)
     await server.serve()
 

@@ -13,7 +13,7 @@ logging.basicConfig(
     format='%(asctime)s|%(name)s|%(levelname)s|%(message)s|',
     handlers=[
         logging.handlers.RotatingFileHandler(
-            'logs/currenciess.log', maxBytes=500*1024*1024),
+            'logs/currency.log', maxBytes=500*1024*1024),
         logging.StreamHandler()
     ]
 )

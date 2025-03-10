@@ -12,23 +12,13 @@ ENV_FILES = [
 
 
 class Settings(BaseSettings):
-    app_title: str = 'CipherSwap'
-    app_description: str = 'Описание проекта'
-    secret: str = 'SECRET'
     DATABASE_URL: str
-    TOKEN: str
-    ADMIN_TOKEN: str
-    TIMEZONE: Optional[str] = 'Europe/Moscow'
-    FFIO_APIKEY: str
-    FFIO_SECRET: str
-    DOMAIN: str
-    EASYBIT_API_KEY: str
 
-    REDIS_HOST: Optional[str] = 'localhost'
+    REDIS_HOST: Optional[str] = 'redis'
     REDIS_PORT: Optional[str] = '6379'
     REDIS_DATABASE: Optional[int] = 0
 
-    KAFKA_BOOTSTRAP_SERVICE: str = 'localhost:9092'
+    KAFKA_BOOTSTRAP_SERVICE: str = 'redis:9092'
 
     model_config = SettingsConfigDict(env_file=ENV_FILES, extra="ignore")
 

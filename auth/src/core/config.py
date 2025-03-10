@@ -12,31 +12,18 @@ ENV_FILES = [
 
 
 class Settings(BaseSettings):
-    app_title: str = 'CipherSwap'
-    app_description: str = 'Описание проекта'
-    secret: str = 'SECRET'
     DATABASE_URL: str
-    TELEGRAM_BOT_TOKEN: str
-    ADMIN_TOKEN: str
-    TIMEZONE: Optional[str] = 'Europe/Moscow'
-    FFIO_APIKEY: str
-    FFIO_SECRET: str
     DOMAIN: str
     SECRET_KEY: str
-
-    SMTP_SERVER: str
-    SMTP_PORT: int
-    SMTP_EMAIL: str
-    SMTP_EMAIL_PASSWORD: str
 
     GOOGLE_CLIENT_ID: str
     GOOGLE_CLIENT_SECRET: str
 
-    REDIS_HOST: Optional[str] = 'localhost'
+    REDIS_HOST: Optional[str] = 'redis'
     REDIS_PORT: Optional[str] = '6379'
     REDIS_DATABASE: Optional[int] = 0
 
-    KAFKA_BOOTSTRAP_SERVICE: str = 'localhost:9092'
+    KAFKA_BOOTSTRAP_SERVICE: Optional[str] = 'kafka:9092'
 
     model_config = SettingsConfigDict(env_file=ENV_FILES, extra="ignore")
 
@@ -52,7 +39,7 @@ LOGGING_CONFIG = {
     "handlers": {
         "file": {
             "class": "logging.FileHandler",
-            "filename": "logs/backend.log",
+            "filename": "logs/auth.log",
             "formatter": "default",
             "level": "DEBUG"
         },

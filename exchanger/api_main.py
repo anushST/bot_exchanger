@@ -34,7 +34,7 @@ app = FastAPI(docs_url='/docs/backend/swagger',
               openapi_url='/docs/backend/openapi.json',
               title=settings.app_title)
 
-app.include_router(main_router, prefix='/api/v1')
+app.include_router(main_router, prefix='/exchanger/api/v1')
 
 app.add_middleware(
     CORSMiddleware,
@@ -50,7 +50,7 @@ async def main():
     # async with AsyncSessionLocal() as session:
     #     await load_csv_data(session, 'user.csv', 'transaction.csv')
 
-    config = uvicorn.Config('main:app', host='0.0.0.0',
+    config = uvicorn.Config('api_main:app', host='0.0.0.0',
                             port=8002, reload=True, log_config=None)
     server = uvicorn.Server(config)
     await server.serve()

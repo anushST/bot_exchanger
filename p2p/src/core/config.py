@@ -12,20 +12,14 @@ ENV_FILES = [
 
 
 class Settings(BaseSettings):
-    app_title: str = 'CipherSwap'
-    app_description: str = 'Описание проекта'
     DATABASE_URL: str
-    ADMIN_TOKEN: str
-    TIMEZONE: Optional[str] = 'Europe/Moscow'
-    FFIO_APIKEY: str
-    FFIO_SECRET: str
     DOMAIN: str
-    TELEGRAM_BOT_TOKEN: str
-    SECRET_KEY: str
 
-    REDIS_HOST: Optional[str] = 'localhost'
+    REDIS_HOST: Optional[str] = 'redis'
     REDIS_PORT: Optional[str] = '6379'
     REDIS_DATABASE: Optional[int] = 0
+
+    KAFKA_BOOTSTRAP_SERVICE: Optional[str] = 'kafka:9092'
 
     model_config = SettingsConfigDict(env_file=ENV_FILES, extra="ignore")
 
@@ -41,7 +35,7 @@ LOGGING_CONFIG = {
     "handlers": {
         "file": {
             "class": "logging.FileHandler",
-            "filename": "logs/backend.log",
+            "filename": "logs/p2p.log",
             "formatter": "default",
             "level": "DEBUG"
         },

@@ -73,6 +73,8 @@ services:
       - db
       - redis
     command: [ "python", "currencies_main.py"]
+    environment:
+      - ENV_STATE=prod
     volumes:
       - ./exchangers:/usr/src/app
 
@@ -83,6 +85,8 @@ services:
       - db
       - redis
     command: [ "python", "transactions_main.py"]
+    environment:
+      - ENV_STATE=prod
     volumes:
       - ./exchangers:/usr/src/app
 

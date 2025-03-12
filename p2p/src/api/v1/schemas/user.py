@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, UUID4
 
 
 class UserBase(BaseModel):
@@ -17,6 +17,7 @@ class UserUpdate(BaseModel):
 
 
 class UserResponse(UserBase):
+    id: UUID4
     is_email_confirmed: bool
     is_active: bool
     tg_id: Optional[int] = None

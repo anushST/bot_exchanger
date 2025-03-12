@@ -5,13 +5,13 @@ from sqlalchemy.future import select
 from src.core.db import get_async_session
 from src.models import Deal, Offer, User, Bank, Network
 from src.api.v1.schemas import DealCreate, DealResponse
-from src.enums import DirectionTypes
+from src.enums import DirectionTypes, OfferType, UserRole
 from src.utils import get_current_user, PaginatedResponse, PaginationParams
 
 router = APIRouter()
 
 
-@router.post("/deals/", response_model=DealResponse)
+@router.post("/", response_model=DealResponse)
 async def create_deal(
     deal: DealCreate, session: AsyncSession = Depends(get_async_session),
     user: User = Depends(get_current_user)
@@ -65,7 +65,7 @@ async def create_deal(
     return db_deal
 
 
-@router.get("/deals/", response_model=PaginatedResponse[DealResponse])
+@router.get("/", response_model=PaginatedResponse[DealResponse])
 async def get_deals(
     session: AsyncSession = Depends(get_async_session),
     pagination: PaginationParams = Depends()
@@ -77,7 +77,7 @@ async def get_deals(
     return {"total": total, "items": result.unique().scalars().all()}
 
 
-@router.get("/deals/{deal_id}", response_model=DealResponse)
+@router.get("/{deal_id}", response_model=DealResponse)
 async def get_deal(deal_id: uuid.UUID,
                    session: AsyncSession = Depends(get_async_session)):
     result = await session.execute(select(Deal).where(Deal.id == deal_id))
@@ -85,3 +85,48 @@ async def get_deal(deal_id: uuid.UUID,
     if not deal:
         raise HTTPException(status_code=404, detail="Deal not found")
     return deal
+
+
+@router.patch('/confirm-pay/{deal_id}')
+async def confirm_deal(
+    deal_id: uuid.UUID, session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(get_current_user)
+):
+    result = await session.execute(select(Deal).where(Deal.id == deal_id))
+    deal = result.scalars().first()
+
+    not_found = HTTPException(status_code=404, detail="Deal not found")
+
+    if not deal:
+        raise not_found
+
+    if user.role == UserRole.ARBITRAGER.value:
+        if (user.id != deal.offer.arbitrager.user.id
+                and user.id != deal.buyer_id):
+            raise not_found
+    elif user.role == UserRole.USER.value:
+        if user.id != deal.buyer_id:
+            raise not_found
+
+    if deal.offer.type == OfferType.BUY.value:
+        if (user.role == UserRole.ARBITRAGER.value
+                and not deal.is_buyer_confirmed):
+            raise HTTPException(400, 'Buyer did not confirm yet.')
+        if user.role == UserRole.ARBITRAGER.value:
+            deal.is_arbitrager_confirmed = True
+        if user.role == UserRole.USER.value:
+            deal.is_buyer_confirmed = True
+    elif deal.offer.type == OfferType.SELL.value:
+        if (user.role == UserRole.USER.value
+                and not deal.is_arbitrager_confirmed):
+            raise HTTPException(400, 'Arbitrager did not confirm yet.')
+        if user.role == UserRole.ARBITRAGER.value:
+            deal.is_arbitrager_confirmed = True
+        if user.role == UserRole.USER.value:
+            deal.is_buyer_confirmed = True
+    else:
+        raise Exception('Incorrect type')
+
+    await session.commit()
+    await session.refresh(deal)
+    return {'deatail': 'Successfully confirmed'}

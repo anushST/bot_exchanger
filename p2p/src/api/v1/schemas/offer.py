@@ -3,6 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel, UUID4, ConfigDict
 
+from .arbitrager import ArbitragerResponse
 from .bank import BankResponse
 from .currency import CurrencyResponse
 from .network import NetworkResponse
@@ -35,7 +36,7 @@ class OfferUpdate(BaseModel):
 
 class OfferResponse(OfferBase):
     id: UUID4
-    arbitrager: BaseModel
+    arbitrager: ArbitragerResponse
     fiat_currency: CurrencyResponse
     crypto_currency: CurrencyResponse
     networks: list[NetworkResponse]

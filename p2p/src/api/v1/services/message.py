@@ -27,12 +27,13 @@ async def get_messages_by_deal(
     deal = await session.execute(select(Deal).where(Deal.id == deal_id))
     deal = deal.scalars().first()
 
-    if deal and (deal.buyer_id == user_id or deal.arbitrator_id == user_id):
+    if deal and (deal.buyer_id == user_id or
+                 deal.offer.arbitrager.user.id == user_id):
         query = select(ChatMessage).where(
             ChatMessage.deal_id == deal_id).order_by(
                 ChatMessage.created_at.asc())
         result = await session.execute(query)
-        messages = result.scalars().all()
+        messages = result.unique().scalars().all()
         return [MessageRead.model_validate(m) for m in messages]
     return []
 
@@ -42,9 +43,9 @@ async def mark_message_read(
 ) -> MessageRead | None:
     query = select(ChatMessage).where(ChatMessage.id == message_id)
     result = await session.execute(query)
-    msg_obj = result.scalar_one_or_none()
+    msg_obj = result.scalars().first()
 
-    if not msg_obj or msg_obj.deal:
+    if (not msg_obj) or msg_obj.deal:
         return None
 
     is_buyer = msg_obj.deal.buyer_id == user_id
@@ -52,7 +53,6 @@ async def mark_message_read(
 
     if (is_buyer or is_arbitrager) and msg_obj.sender_id != user_id:
         msg_obj.is_read = True
-        session.add(msg_obj)
         await session.commit()
         await session.refresh(msg_obj)
 

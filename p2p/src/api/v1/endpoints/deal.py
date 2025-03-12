@@ -2,8 +2,9 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import joinedload
 from src.core.db import get_async_session
-from src.models import Deal, Offer, User, Bank, Network
+from src.models import Arbitrager, Deal, Offer, User, Bank, Network
 from src.api.v1.schemas import DealCreate, DealResponse
 from src.enums import DirectionTypes, OfferType, UserRole
 from src.utils import get_current_user, PaginatedResponse, PaginationParams
@@ -22,6 +23,11 @@ async def create_deal(
     if not offer:
         raise HTTPException(
             400, 'Offer not found please check data'
+        )
+
+    if user.id == offer.arbitrager.user.id:
+        raise HTTPException(
+            400, 'You can not make deal on your offer'
         )
 
     result = await session.execute(
@@ -68,19 +74,36 @@ async def create_deal(
 @router.get("/", response_model=PaginatedResponse[DealResponse])
 async def get_deals(
     session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(get_current_user),
     pagination: PaginationParams = Depends()
 ):
-    total_result = await session.execute(select(Deal))
+    query = (select(Deal)
+             .where((Deal.buyer_id == user.id) | (Deal.offer.has(
+                     Offer.arbitrager.has(Arbitrager.user_id == user.id))))
+             .options(joinedload(Deal.offer).joinedload(Offer.arbitrager)))
+    total_result = await session.execute(query)
     total = len(total_result.unique().scalars().all())
     result = await session.execute(
-        select(Deal).offset(pagination.offset).limit(pagination.limit))
+        query.offset(pagination.offset).limit(pagination.limit))
     return {"total": total, "items": result.unique().scalars().all()}
 
 
 @router.get("/{deal_id}", response_model=DealResponse)
-async def get_deal(deal_id: uuid.UUID,
-                   session: AsyncSession = Depends(get_async_session)):
-    result = await session.execute(select(Deal).where(Deal.id == deal_id))
+async def get_deal(
+    deal_id: uuid.UUID,
+    session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(get_current_user)
+):
+    result = await session.execute(
+        select(Deal)
+        .where(
+            (Deal.id == deal_id) &
+            ((Deal.buyer_id == user.id) |
+             (Deal.offer.has(
+                 Offer.arbitrager.has(Arbitrager.user_id == user.id))))
+        )
+        .options(joinedload(Deal.offer).joinedload(Offer.arbitrager))
+    )
     deal = result.scalars().first()
     if not deal:
         raise HTTPException(status_code=404, detail="Deal not found")

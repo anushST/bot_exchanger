@@ -77,7 +77,7 @@ async def become_arbitrager(
 
 
 @router.get("/me", response_model=UserResponse, tags=['User'])
-def get_me(user: User = Depends(get_current_user)):
+def get_me(user: User = Depends(_get_current_user)):
     return UserResponse(
         email=user.email, full_name=user.full_name,
         tg_id=user.tg_id, is_email_confirmed=user.is_email_confirmed,

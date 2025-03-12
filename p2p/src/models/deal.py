@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, DECIMAL, ForeignKey, Enum, String
+from sqlalchemy import Boolean, Column, DateTime, DECIMAL, ForeignKey, Enum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -16,23 +16,17 @@ class Deal(Base):
                 unique=True, nullable=False)
     buyer_id = Column(UUID(as_uuid=True), ForeignKey('users.id'),
                       nullable=False)
-    arbitrator_id = Column(UUID(as_uuid=True),
-                           ForeignKey('p2p_arbitragers.id'),
-                           nullable=True)
-    arbitrator_offer_id = Column(UUID(as_uuid=True),
+    arbitrager_offer_id = Column(UUID(as_uuid=True),
                                  ForeignKey('p2p_arbitrager_offers.id'),
                                  nullable=True)
-
-    fiat_currency_id = Column(
-        UUID(as_uuid=True), ForeignKey('p2p_currencies.id'), nullable=False)
-    crypto_currency_id = Column(
-        UUID(as_uuid=True), ForeignKey('p2p_currencies.id'), nullable=False)
     fiat_amount = Column(DECIMAL(10, 2), nullable=False)
     crypto_amount = Column(DECIMAL(10, 4), nullable=False)
 
     bank_id = Column(UUID, ForeignKey('p2p_banks.id'), nullable=True)
     network_id = Column(UUID, ForeignKey('p2p_networks.id'), nullable=True)
-    crypto_address = Column(String, nullable=True)
+
+    is_buyer_confirmed = Column(Boolean, default=False, nullable=False)
+    is_arbitrager_confirmed = Column(Boolean, default=False, nullable=False)
 
     status = Column(Enum(*[d.value for d in DealStatus],
                          name='p2p_deal_status'), nullable=False,
@@ -45,16 +39,10 @@ class Deal(Base):
                             cascade='all, delete-orphan')
 
     buyer = relationship("User", lazy="joined")
-    arbitrator = relationship("Arbitrager", lazy="joined")
-    fiat_currency = relationship("Currency", foreign_keys=[fiat_currency_id],
-                                 lazy="joined")
-    crypto_currency = relationship(
-        "Currency", foreign_keys=[crypto_currency_id], lazy="joined")
     bank = relationship("Bank", lazy="joined")
     network = relationship("Network", lazy="joined")
     offer = relationship(
         "Offer",
-        foreign_keys=[arbitrator_offer_id],
         back_populates="deals",
         lazy="joined"
     )

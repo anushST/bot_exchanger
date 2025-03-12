@@ -21,7 +21,6 @@ class CurrencyType(str, Enum):
 
 class DealStatus(str, Enum):
     PENDING = "PENDING"
-    PAID = "PAID"
     COMPLETED = "COMPLETED"
     CANCELED = "CANCELED"
     MODERATION = "MODERATION"

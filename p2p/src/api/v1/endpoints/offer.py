@@ -27,17 +27,6 @@ async def validate_offer_data(offer, session: AsyncSession):
                 status_code=400,
                 detail=f"Fiat currency not found: {offer.fiat_currency_id}"
             )
-    if offer.crypto_currency_id:
-        result = await session.execute(
-            select(Currency)
-            .where((Currency.id == offer.crypto_currency_id) &
-                   (Currency.type == CurrencyType.CRYPTO.value))
-        )
-        if not result.scalars().first():
-            raise HTTPException(
-                status_code=400,
-                detail=f"Crypto currency not found: {offer.crypto_currency_id}"
-            )
 
 
 @router.post("/offers/", response_model=OfferResponse)
@@ -47,6 +36,19 @@ async def create_offer(
 ):
     await validate_offer_data(offer, session)
 
+    if offer.crypto_currency_id:
+        result = await session.execute(
+            select(Currency)
+            .where((Currency.id == offer.crypto_currency_id) &
+                   (Currency.type == CurrencyType.CRYPTO.value))
+        )
+        crypto = result.scalars().first()
+        if not crypto:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Crypto currency not found: {offer.crypto_currency_id}"
+            )
+
     result = await session.execute(
         select(Network).where(Network.id.in_(offer.network_ids)))
     networks = result.unique().scalars().all()
@@ -54,6 +56,12 @@ async def create_offer(
         raise HTTPException(
             400, 'Networks not found. Select networks'
         )
+
+    for network in networks:
+        if network.id not in [n.id for n in crypto.networks]:
+            raise HTTPException(
+                400, 'This network not allowed for this currency'
+            )
 
     result = await session.execute(
         select(Bank).where(Bank.id.in_(offer.bank_ids)))
@@ -116,6 +124,19 @@ async def update_offer(
 
     await validate_offer_data(db_offer, session)
 
+    if offer.crypto_currency_id:
+        result = await session.execute(
+            select(Currency)
+            .where((Currency.id == offer.crypto_currency_id) &
+                   (Currency.type == CurrencyType.CRYPTO.value))
+        )
+        crypto = result.scalars().first()
+        if not crypto:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Crypto currency not found: {offer.crypto_currency_id}"
+            )
+
     for key, value in offer.model_dump(
             exclude={"network_ids", 'bank_ids'},
             exclude_none=True).items():
@@ -129,6 +150,13 @@ async def update_offer(
             raise HTTPException(
                 400, 'Networks not found. Select networks'
             )
+
+        for network in networks:
+            if network.id not in [n.id for n in crypto.networks]:
+                raise HTTPException(
+                    400, 'This network not allowed for this currency'
+                )
+
         db_offer.networks = networks
 
     if offer.bank_ids:

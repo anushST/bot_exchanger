@@ -3,3 +3,4 @@ from .models import (
     CurrencyType, DealStatus, MessageType, ModerationStatus, OfferType,
     UserRole
 )
+from .deal import DirectionTypes

@@ -13,6 +13,7 @@ ENV_FILES = [
 
 class Settings(BaseSettings):
     DATABASE_URL: str
+    DOMAIN: str
 
     EASYBIT_API_KEY: str
 

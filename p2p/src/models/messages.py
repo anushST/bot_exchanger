@@ -26,6 +26,7 @@ class ChatMessage(Base):
     attachment_url = Column(String, nullable=True)
     message_content = Column(String, nullable=False)
     is_read = Column(Boolean, nullable=False, default=False)
+    is_from_moderator = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, default=datetime.now, nullable=False)
     updated_at = Column(DateTime, default=datetime.now,
                         onupdate=datetime.now, nullable=False)

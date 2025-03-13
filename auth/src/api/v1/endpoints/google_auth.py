@@ -1,6 +1,5 @@
 from authlib.integrations.starlette_client import OAuth
 from fastapi import HTTPException, APIRouter, Depends
-from starlette.requests import Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,17 +27,11 @@ oauth.register(
 )
 
 
-@router.get('/google-login')
-async def login(request: Request):
-    redirect_uri = 'http://localhost:8002/api/v1/auth/google-callback'
-    return await oauth.google.authorize_redirect(request, redirect_uri)
-
-
 @router.get('/google-callback', response_model=schemas.TokensResponse)
 async def auth_callback(
-        request: Request, session: AsyncSession = Depends(get_async_session)):
+    token: str, session: AsyncSession = Depends(get_async_session)
+):
     try:
-        token = await oauth.google.authorize_access_token(request)
         user_info = await oauth.google.get(
             "https://openidconnect.googleapis.com/v1/userinfo", token=token)
         user_info: dict = user_info.json()

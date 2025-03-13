@@ -4,6 +4,10 @@ from . import endpoints
 
 v1_router = APIRouter()
 
+
+v1_router.include_router(
+    endpoints.appeal_router, prefix='/appeals', tags=['Appeals']
+)
 v1_router.include_router(
     endpoints.bank_router, prefix='/banks', tags=['Banks']
 )

@@ -7,11 +7,9 @@ class UserRole(str, Enum):
     ARBITRAGER = "ARBITRAGER"
 
 
-class ModerationStatus(str, Enum):
-    OPEN = "OPEN"
+class AppealStatus(str, Enum):
     IN_PROGRESS = "IN_PROGRESS"
     RESOLVED = "RESOLVED"
-    REJECTED = "REJECTED"
 
 
 class CurrencyType(str, Enum):
@@ -23,7 +21,7 @@ class DealStatus(str, Enum):
     PENDING = "PENDING"
     COMPLETED = "COMPLETED"
     CANCELED = "CANCELED"
-    MODERATION = "MODERATION"
+    APPEAL = "APPEAL"
 
 
 class MessageType(str, Enum):

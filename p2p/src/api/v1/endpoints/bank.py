@@ -13,7 +13,7 @@ from src.utils import PaginationParams, PaginatedResponse
 router = APIRouter()
 
 
-@router.post("/banks/", response_model=BankResponse)
+@router.post("/", response_model=BankResponse)
 async def create_bank(bank: BankCreate,
                       session: AsyncSession = Depends(get_async_session)):
     try:
@@ -27,7 +27,7 @@ async def create_bank(bank: BankCreate,
             400, detail='The currency with code already exists.')
 
 
-@router.get("/banks/", response_model=PaginatedResponse[BankResponse])
+@router.get("/", response_model=PaginatedResponse[BankResponse])
 async def get_banks(
     pagination: PaginationParams = Depends(),
     session: AsyncSession = Depends(get_async_session)
@@ -41,7 +41,7 @@ async def get_banks(
     )
 
 
-@router.get("/banks/{bank_id}", response_model=BankResponse)
+@router.get("/{bank_id}", response_model=BankResponse)
 async def get_bank(bank_id: uuid.UUID,
                    session: AsyncSession = Depends(get_async_session)):
     result = await session.execute(select(Bank).where(Bank.id == bank_id))
@@ -51,7 +51,7 @@ async def get_bank(bank_id: uuid.UUID,
     return bank
 
 
-@router.patch("/banks/{bank_id}", response_model=BankResponse)
+@router.patch("/{bank_id}", response_model=BankResponse)
 async def update_bank(bank_id: uuid.UUID, bank: BankUpdate,
                       session: AsyncSession = Depends(get_async_session)):
     try:
@@ -68,7 +68,7 @@ async def update_bank(bank_id: uuid.UUID, bank: BankUpdate,
             400, detail='The currency with code already exists.')
 
 
-@router.delete("/banks/{bank_id}")
+@router.delete("/{bank_id}")
 async def delete_bank(bank_id: uuid.UUID,
                       session: AsyncSession = Depends(get_async_session)):
     result = await session.execute(select(Bank).where(Bank.id == bank_id))

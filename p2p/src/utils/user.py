@@ -56,3 +56,10 @@ async def get_arbitrager(user: User = Depends(get_current_user)):
         return user.arbitrager
     raise HTTPException(
         403, 'You are not arbitrager, please become arbitrager')
+
+
+async def get_moderator(user: User = Depends(get_current_user)):
+    if user.moderator and user.role == UserRole.MODERATOR.value:
+        return user.arbitrager
+    raise HTTPException(
+        403, 'You are not Moderator, please become moderator')

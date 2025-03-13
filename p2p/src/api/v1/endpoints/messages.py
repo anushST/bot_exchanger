@@ -2,44 +2,60 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.v1.schemas.message import MessageCreate, MessageRead
-from src.models import User, ChatMessage
+from src.enums import UserRole
+from src.models import Appeal, Arbitrager, Deal, Offer, User, ChatMessage
 from src.core.db import get_async_session
-from src.api.v1.services.message import (
-    create_message, get_messages_by_deal, mark_message_read)
 from src.utils import get_current_user
 
 router = APIRouter()
 
 
+async def get_deal(session: AsyncSession, deal_id, user_id):
+    result = await session.execute(
+            select(Deal)
+            .where(
+                (Deal.id == deal_id) &
+                ((Deal.buyer_id == user_id) |
+                 (Deal.offer.has(
+                     Offer.arbitrager.has(Arbitrager.user_id == user_id))))
+            )
+            .options(joinedload(Deal.offer).joinedload(Offer.arbitrager))
+        )
+    deal = result.scalars().first()
+    return deal
+
+
 @router.post("/", response_model=MessageRead)
 async def send_message(
     message: MessageCreate,
-    db: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_async_session),
     user: User = Depends(get_current_user)
 ):
-    # media_url = None
-    # media_type = None
+    deal = await get_deal(session, message.deal_id, user.id)
 
-    # if media:
-    #     # тут логика сохранения файла, например, в S3 или локально
-    #     # сохраняем и получаем media_url
-    #     saved_path = f"/some/path/{media.filename}"  # пример
-    #     media_url = saved_path
-    #     # определяем тип в зависимости от расширения или внешних данных
-    #     media_type = "photo"  # или "video"/"audio"
+    if user.role == UserRole.MODERATOR.value:
+        result = await session.execute(
+            select(Deal).where(Deal.id == message.deal_id))
+        deal = result.scalars().first()
 
-    # message_data = MessageCreate(
-    #     deal_id=deal_id,
-    #     text=text,
-    #     media_url=media_url,
-    #     media_type=media_type
-    # )
+    if not deal:
+        raise HTTPException(status_code=404, detail="Deal not found")
 
-    new_message = await create_message(
-        db, message, sender_id=user.id)
+    new_message = ChatMessage(
+        deal_id=deal.id,
+        sender_id=user.id,
+        message_content=message.text,
+    )
+    if user.role == UserRole.MODERATOR.value:
+        new_message.is_from_moderator = True
+
+    session.add(new_message)
+    await session.commit()
+    await session.refresh(new_message)
     return new_message
 
 
@@ -49,11 +65,38 @@ async def get_deal_messages(
     session: AsyncSession = Depends(get_async_session),
     user: User = Depends(get_current_user),
 ):
-    messages = await get_messages_by_deal(session, deal_id, user.id)
+    deal = await get_deal(session, deal_id, user.id)
 
-    if not messages:
-        raise HTTPException(status_code=404, detail='Deal not found')
-    return messages
+    if not deal:
+        raise HTTPException(status_code=404, detail="Deal not found")
+
+    query = select(ChatMessage).where(
+        ChatMessage.deal_id == deal_id).order_by(
+            ChatMessage.created_at.asc())
+    result = await session.execute(query)
+    messages = result.unique().scalars().all()
+    return [MessageRead.model_validate(m) for m in messages]
+
+
+@router.get('/appeal/{appeal_id}', response_model=list[MessageRead])
+async def get_appeal_messages(
+    appeal_id: uuid.UUID,
+    session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(get_current_user),
+):
+    query = select(Appeal).where(Appeal.id == appeal_id)
+    result = await session.execute(query)
+    appeal = result.scalars().first()
+
+    if not appeal:
+        raise HTTPException(status_code=404, detail="Appeal not found")
+
+    query = select(ChatMessage).where(
+        ChatMessage.deal_id == appeal.deal_id).order_by(
+            ChatMessage.created_at.asc())
+    result = await session.execute(query)
+    messages = result.unique().scalars().all()
+    return [MessageRead.model_validate(m) for m in messages]
 
 
 @router.patch("/{message_id}/read", response_model=MessageRead)

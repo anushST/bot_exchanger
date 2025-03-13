@@ -37,7 +37,7 @@ class Deal(Base):
 
     messages = relationship('ChatMessage', back_populates='deal',
                             cascade='all, delete-orphan')
-
+    appeal = relationship('Appeal', back_populates='deal', lazy='joined')
     buyer = relationship("User", lazy="joined")
     bank = relationship("Bank", lazy="joined")
     network = relationship("Network", lazy="joined")

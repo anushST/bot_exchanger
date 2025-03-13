@@ -1,7 +1,7 @@
 # flake8: noqa: F401
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from .appeal import ModerationRequest, ModerationStatus
+from .appeal import Appeal
 from .bank import Bank
 from .currency import Currency, CurrencyType, Network
 from .deal import Deal

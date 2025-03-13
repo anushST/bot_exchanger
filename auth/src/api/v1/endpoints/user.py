@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from src.api.v1.schemas import UserResponse, UserUpdate
 from src.core.db import get_async_session
 from src.enums import UserRole
-from src.models import User, Arbitrager
+from src.models import User, Arbitrager, Moderator
 from src.exceptions import ExpiredSignatureError, InvalidTokenError
 from src.utils import decode_token
 
@@ -74,6 +74,27 @@ async def become_arbitrager(
         return {'detail': 'You are succesfully became an arbitrager'}
     except IntegrityError:
         raise HTTPException(400, 'You are already an arbitrager')
+
+
+@router.patch('/become_moderator', tags=['User'])
+async def make_moderator(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session)
+):
+    try:
+        user.role = UserRole.MODERATOR.value
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+
+        moderator = Moderator(user_id=user.id)
+        session.add(moderator)
+        await session.commit()
+        await session.refresh(moderator)
+
+        return {'detail': 'You are succesfully became a Moderator'}
+    except IntegrityError:
+        raise HTTPException(400, 'You are already an Moderator')
 
 
 @router.get("/me", response_model=UserResponse, tags=['User'])

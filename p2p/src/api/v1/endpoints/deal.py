@@ -12,6 +12,21 @@ from src.utils import get_current_user, PaginatedResponse, PaginationParams
 router = APIRouter()
 
 
+async def get_deal_by_id(session: AsyncSession, deal_id, user_id):
+    result = await session.execute(
+            select(Deal)
+            .where(
+                (Deal.id == deal_id) &
+                ((Deal.buyer_id == user_id) |
+                 (Deal.offer.has(
+                     Offer.arbitrager.has(Arbitrager.user_id == user_id))))
+            )
+            .options(joinedload(Deal.offer).joinedload(Offer.arbitrager))
+        )
+    deal = result.scalars().first()
+    return deal
+
+
 @router.post("/", response_model=DealResponse)
 async def create_deal(
     deal: DealCreate, session: AsyncSession = Depends(get_async_session),
@@ -85,7 +100,9 @@ async def get_deals(
     total = len(total_result.unique().scalars().all())
     result = await session.execute(
         query.offset(pagination.offset).limit(pagination.limit))
-    return {"total": total, "items": result.unique().scalars().all()}
+    return PaginatedResponse(
+        total=total, items=result.unique().scalars().all()
+    )
 
 
 @router.get("/{deal_id}", response_model=DealResponse)
@@ -94,17 +111,7 @@ async def get_deal(
     session: AsyncSession = Depends(get_async_session),
     user: User = Depends(get_current_user)
 ):
-    result = await session.execute(
-        select(Deal)
-        .where(
-            (Deal.id == deal_id) &
-            ((Deal.buyer_id == user.id) |
-             (Deal.offer.has(
-                 Offer.arbitrager.has(Arbitrager.user_id == user.id))))
-        )
-        .options(joinedload(Deal.offer).joinedload(Offer.arbitrager))
-    )
-    deal = result.scalars().first()
+    deal = await get_deal_by_id(session, deal_id, user.id)
     if not deal:
         raise HTTPException(status_code=404, detail="Deal not found")
     return deal
@@ -115,21 +122,20 @@ async def confirm_deal(
     deal_id: uuid.UUID, session: AsyncSession = Depends(get_async_session),
     user: User = Depends(get_current_user)
 ):
-    result = await session.execute(select(Deal).where(Deal.id == deal_id))
-    deal = result.scalars().first()
-
     not_found = HTTPException(status_code=404, detail="Deal not found")
+
+    deal = await get_deal_by_id(session, deal_id, user.id)
 
     if not deal:
         raise not_found
 
-    if user.role == UserRole.ARBITRAGER.value:
-        if (user.id != deal.offer.arbitrager.user.id
-                and user.id != deal.buyer_id):
-            raise not_found
-    elif user.role == UserRole.USER.value:
-        if user.id != deal.buyer_id:
-            raise not_found
+    # if user.role == UserRole.ARBITRAGER.value:
+    #     if (user.id != deal.offer.arbitrager.user.id
+    #             and user.id != deal.buyer_id):
+    #         raise not_found
+    # elif user.role == UserRole.USER.value:
+    #     if user.id != deal.buyer_id:
+    #         raise not_found
 
     if deal.offer.type == OfferType.BUY.value:
         if (user.role == UserRole.ARBITRAGER.value

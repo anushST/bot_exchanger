@@ -20,6 +20,7 @@ class MessageRead(BaseModel):
     media_url: Optional[str] = None
     media_type: Optional[str] = None
     is_read: bool
+    is_from_moderator: bool
     created_at: datetime
     updated_at: datetime
 

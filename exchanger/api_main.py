@@ -33,7 +33,7 @@ async def init_db():
 app = FastAPI(docs_url='/docs/exchanger/swagger',
               openapi_url='/docs/exchanger/openapi.json')
 
-app.include_router(main_router, prefix='/exchanger/api/v1')
+app.include_router(main_router, prefix='/api/v1/exchanger')
 
 app.add_middleware(
     CORSMiddleware,

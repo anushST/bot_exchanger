@@ -20,7 +20,7 @@ class Credentials(BaseModel):
     token: str
 
 
-@router.get('/google-callback', response_model=schemas.TokensResponse)
+@router.post('/google-callback', response_model=schemas.TokensResponse)
 async def auth_callback(
     credentials: Credentials,
     session: AsyncSession = Depends(get_async_session)

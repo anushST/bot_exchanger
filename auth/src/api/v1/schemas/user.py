@@ -4,11 +4,11 @@ from pydantic import BaseModel, EmailStr, ConfigDict
 
 
 class UserBase(BaseModel):
-    email: EmailStr
     full_name: Optional[str] = None
 
 
 class UserCreate(UserBase):
+    email: EmailStr
     password: str
 
 
@@ -17,6 +17,7 @@ class UserUpdate(BaseModel):
 
 
 class UserResponse(UserBase):
+    email: Optional[EmailStr]
     is_email_confirmed: bool
     is_active: bool
     tg_id: Optional[int] = None

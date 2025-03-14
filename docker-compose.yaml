@@ -1,13 +1,15 @@
 services:
   zookeeper:
-      image: wurstmeister/zookeeper
-      container_name: zookeeper
-      ports:
-        - "2181:2181"
+    restart: always
+    image: wurstmeister/zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
 
   kafka:
     image: wurstmeister/kafka
     container_name: kafka
+    restart: always
     ports:
       - "9092:9092"
     environment:
@@ -18,6 +20,7 @@ services:
       - zookeeper
 
   redis:
+    restart: always
     image: redis:6-alpine
     networks:
       - default

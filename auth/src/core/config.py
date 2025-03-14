@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     DOMAIN: str
     SECRET_KEY: str
 
+    TELEGRAM_BOT_TOKEN: str
+
     GOOGLE_CLIENT_ID: str
     GOOGLE_CLIENT_SECRET: str
 

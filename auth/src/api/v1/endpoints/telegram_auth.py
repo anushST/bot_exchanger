@@ -15,7 +15,7 @@ router = APIRouter()
 async def auth_check(tg_data: schemas.TelegramAuthRequest,
                      session: AsyncSession = Depends(get_async_session)
                      ) -> schemas.TokensResponse:
-    data = tg_data.model_dump()
+    data = tg_data.model_dump(exclude_none=True)
     if not verify_telegram_auth(data, settings.TELEGRAM_BOT_TOKEN):
         raise HTTPException(status_code=401, detail="Invalid Telegram data")
 

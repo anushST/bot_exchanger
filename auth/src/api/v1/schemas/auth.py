@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel, EmailStr
 
 
@@ -19,6 +21,6 @@ class TelegramAuthRequest(BaseModel):
     id: int
     first_name: str
     username: str
-    photo_url: str
+    photo_url: Optional[str] = None
     auth_date: int
     hash: str
